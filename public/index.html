@@ -5,36 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI 학습 루틴 추천</title>
   <link rel="stylesheet" href="style.css" />
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
 </head>
 <body>
   <div class="container">
     <h1>AI 학습 루틴 추천</h1>
 
-    <!-- 로그인/회원가입 영역 -->
-<div id="auth">
-  <input id="username" placeholder="아이디">
-  <input id="password" type="password" placeholder="비밀번호">
-  <button id="btn-login">로그인</button>
-  <button id="btn-register">회원가입</button>
-  <button id="btn-temp-login">임시 로그인 생략</button>
-</div>
+    <!-- 로그인 영역 -->
+    <div id="auth">
+      <input id="username" placeholder="아이디" />
+      <input id="password" type="password" placeholder="비밀번호" />
+      <button id="btn-login">로그인</button>
+      <button id="btn-register">회원가입</button>
+      <button id="btn-temp-login">임시 로그인 생략</button>
+    </div>
 
-<!-- 로그인 후만 보이는 입력 폼 -->
-<form id="profile-form" style="display: none;">
-  <input id="name" placeholder="이름" required />
-  <input id="goal" placeholder="학습 목표" required />
-  <input id="hours" placeholder="하루 가능 시간" required />
-  <input id="method" placeholder="학습 방법" required />
-  <input id="focusTime" placeholder="집중 시간대" required />
-  <input id="interests" placeholder="관심 분야" required />
-  <button>추천받기</button>
-</form>
+    <!-- 루틴 입력 폼 -->
+    <form id="profile-form" style="display: none;">
+      <input id="name" placeholder="이름" required />
+      <input id="goal" placeholder="학습 목표" required />
+      <input id="hours" type="number" placeholder="하루 가능 시간" required />
+      <input id="method" placeholder="학습 방법" required />
+      <input id="focusTime" placeholder="집중 시간대" required />
+      <input id="interests" placeholder="관심 분야" required />
+      <button>추천받기</button>
+    </form>
 
-<pre id="result"></pre>
-<button id="btn-logout" style="display:none;">로그아웃</button>
+    <!-- 결과 표시 -->
+    <div id="result-box" style="display:none;">
+      <h3>추천 결과</h3>
+      <pre id="result"></pre>
 
+      <!-- 캘린더 영역 -->
+      <div id="calendar"></div>
+
+      <!-- 피드백 입력 -->
+      <textarea id="feedback" placeholder="루틴에 대한 피드백을 남겨주세요."></textarea>
+      <button id="submit-feedback">피드백 제출</button>
+    </div>
+
+    <button id="btn-logout" style="display: none;">로그아웃</button>
   </div>
 
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
   <script src="script.js"></script>
 </body>
 </html>
