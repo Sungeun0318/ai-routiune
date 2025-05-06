@@ -1,0 +1,27 @@
+body {
+  font-family: sans-serif;
+  background: #f0f0f0;
+  margin: 0;
+}
+.container {
+  max-width: 500px;
+  margin: 40px auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 6px;
+}
+input {
+  width: 100%;
+  padding: 6px;
+  margin: 5px 0;
+  box-sizing: border-box;
+}
+button {
+  padding: 8px 12px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+pre {
+  margin-top: 20px;
+  white-space: pre-wrap;
+}
