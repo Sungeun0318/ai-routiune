@@ -15,4 +15,4 @@ const recommendationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Recommendation', recommendationSchema);
+module.exports = mongoose.model('Recommendation', recommendationSchema);//(5월6일2:35) 서버에서 추천 저장과 피드백 저장

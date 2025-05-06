@@ -9,18 +9,16 @@
 </head>
 <body>
   <div class="container">
-    <h1>AI 학습 루틴 추천</h1>
-
-    <!-- 로그인 영역 -->
+    <!-- 로그인/회원가입 -->
     <div id="auth">
+      <h1>AI 학습 루틴 추천</h1>
       <input id="username" placeholder="아이디" />
       <input id="password" type="password" placeholder="비밀번호" />
       <button id="btn-login">로그인</button>
       <button id="btn-register">회원가입</button>
-      <button id="btn-temp-login">임시 로그인 생략</button>
     </div>
 
-    <!-- 루틴 입력 폼 -->
+    <!-- 학습 루틴 입력 -->
     <form id="profile-form" style="display: none;">
       <input id="name" placeholder="이름" required />
       <input id="goal" placeholder="학습 목표" required />
@@ -31,15 +29,11 @@
       <button>추천받기</button>
     </form>
 
-    <!-- 결과 표시 -->
-    <div id="result-box" style="display:none;">
+    <!-- 결과/피드백 -->
+    <div id="result-box" style="display: none;">
       <h3>추천 결과</h3>
       <pre id="result"></pre>
-
-      <!-- 캘린더 영역 -->
       <div id="calendar"></div>
-
-      <!-- 피드백 입력 -->
       <textarea id="feedback" placeholder="루틴에 대한 피드백을 남겨주세요."></textarea>
       <button id="submit-feedback">피드백 제출</button>
     </div>

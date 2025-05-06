@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원가입</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>회원가입</h1>
+    <input id="username" placeholder="아이디" />
+    <input id="password" type="password" placeholder="비밀번호" />
+    <button id="btn-register">회원가입</button>
+    
+    <!-- 🔙 메인 페이지로 돌아가는 버튼 -->
+    <button onclick="window.location.href='/'">← 돌아가기</button>
+  </div>
+
+  <script>
+    const registerBtn = document.getElementById('btn-register');
+
+    registerBtn.onclick = async () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        alert('아이디와 비밀번호를 입력하세요.');
+        return;
+      }
+
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.ok) {
+        alert('회원가입 성공!');
+        window.location.href = '/';
+      } else {
+        const data = await res.json();
+        alert(data.message || '회원가입 실패');
+      }
+    };
+  </script>
+</body>
+</html>

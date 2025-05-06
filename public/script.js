@@ -1,7 +1,6 @@
 const authDiv      = document.getElementById('auth');
 const loginBtn     = document.getElementById('btn-login');
 const registerBtn  = document.getElementById('btn-register');
-const tempLoginBtn = document.getElementById('btn-temp-login');
 const logoutBtn    = document.getElementById('btn-logout');
 const form         = document.getElementById('profile-form');
 const result       = document.getElementById('result');
@@ -10,13 +9,29 @@ const calendarEl   = document.getElementById('calendar');
 const feedbackInput= document.getElementById('feedback');
 const feedbackBtn  = document.getElementById('submit-feedback');
 
+// 로그인 성공 시 화면 전환
 function showLoggedIn() {
   authDiv.style.display   = 'none';
   form.style.display      = 'block';
   logoutBtn.style.display = 'inline';
 }
 
-// 로그인
+// 자동 로그인 확인
+async function checkAutoLogin() {
+  const res = await fetch('/api/me', { credentials: 'include' });
+  if (res.ok) {
+    showLoggedIn();
+  } else {
+    authDiv.style.display   = 'block';
+    form.style.display      = 'none';
+    logoutBtn.style.display = 'none';
+  }
+}
+
+// 자동 로그인 시도
+window.onload = checkAutoLogin;
+
+// 로그인 요청
 loginBtn.onclick = async () => {
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
@@ -26,46 +41,39 @@ loginBtn.onclick = async () => {
     credentials: 'include',
     body: JSON.stringify({ username, password })
   });
-  if (res.ok) showLoggedIn();
-  else alert('로그인 실패');
+  if (res.ok) {
+    showLoggedIn();
+  } else {
+    alert('로그인 실패');
+  }
 };
 
-// 회원가입
-registerBtn.onclick = async () => {
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
-  const res = await fetch('/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ username, password })
-  });
-  if (res.ok) showLoggedIn();
-  else alert('회원가입 실패');
+// 회원가입 페이지 이동
+registerBtn.onclick = () => {
+  window.location.href = '/register.html';
 };
 
-// 임시 로그인
-tempLoginBtn.onclick = () => {
-  showLoggedIn();
-};
-
-// 로그아웃
+// 로그아웃 요청
 logoutBtn.onclick = async () => {
-  await fetch('/logout', {
+  const res = await fetch('/logout', {
     method: 'POST',
     credentials: 'include'
   });
-  window.location.reload();
+  if (res.ok) {
+    window.location.href = '/';
+  } else {
+    alert('로그아웃 실패');
+  }
 };
 
-// 추천 요청
+// 루틴 추천 요청
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const profile = {
-    name:      form.name.value,
-    goal:      form.goal.value,
-    hours:     form.hours.value,
-    method:    form.method?.value,
+    name: form.name.value,
+    goal: form.goal.value,
+    hours: form.hours.value,
+    method: form.method?.value,
     focusTime: form.focusTime?.value,
     interests: form.interests?.value
   };
@@ -102,7 +110,7 @@ feedbackBtn.onclick = async () => {
   }
 };
 
-// 추천 결과를 캘린더 형태로 렌더링
+// 캘린더 표시
 function renderCalendarFromText(text) {
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridWeek',
@@ -112,23 +120,16 @@ function renderCalendarFromText(text) {
   calendar.render();
 }
 
-// 간단한 텍스트 → 이벤트 변환기
+// 캘린더 데이터 파싱
 function parseEvents(text) {
   const lines = text.split('\n');
   const events = [];
-
   for (let line of lines) {
     const parts = line.split(':');
     if (parts.length === 2) {
       const title = parts[0].trim();
-      const timeStr = parts[1].trim();
-      if (timeStr.match(/\d/)) {
-        const start = new Date();  // 오늘 날짜
-        events.push({
-          title,
-          start: start.toISOString().split('T')[0]
-        });
-      }
+      const start = new Date().toISOString().split('T')[0];
+      events.push({ title, start });
     }
   }
   return events;
