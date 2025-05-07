@@ -1,19 +1,16 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
     unique: true,
     trim: true
   },
-  password: {
+  passwordHash: {
     type: String,
     required: true
-  },
-  displayName: {
-    type: String,
-    trim: true
   },
   email: {
     type: String,
@@ -24,30 +21,14 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   },
   lastLogin: {
-    type: Date
-  },
-  settings: {
-    theme: {
-      type: String,
-      enum: ['light', 'dark', 'system'],
-      default: 'system'
-    },
-    language: {
-      type: String,
-      enum: ['ko', 'en'],
-      default: 'ko'
-    },
-    notifications: {
-      email: {
-        type: Boolean,
-        default: true
-      },
-      push: {
-        type: Boolean,
-        default: true
-      }
-    }
+    type: Date,
+    default: Date.now
   }
-}, { timestamps: true });
+});
 
-module.exports = mongoose.model('User', userSchema);
+// 패스워드 비교 메소드
+UserSchema.methods.comparePassword = async function(password) {
+  return await bcrypt.compare(password, this.passwordHash);
+};
+
+module.exports = mongoose.model('User', UserSchema);

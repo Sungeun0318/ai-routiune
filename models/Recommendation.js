@@ -1,26 +1,29 @@
 const mongoose = require('mongoose');
 
-const recommendationSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  profile: {
-    name: String,
-    goal: String,
-    method: String,
-    hours: String,
-    focusTime: String,
-    interests: String
+const RecommendationSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
-  recommendation: { type: String, required: true },
-  feedback: String,
-  events: [{ 
-    title: String,
-    start: String,
-    end: String,
-    description: String,
-    color: String
-  }],
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  profile: {
+    type: Object,
+    required: true
+  },
+  recommendation: {
+    type: String,
+    required: true
+  },
+  feedback: {
+    type: String
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date
+  }
 });
 
-module.exports = mongoose.model('Recommendation', recommendationSchema);
+module.exports = mongoose.model('Recommendation', RecommendationSchema);
