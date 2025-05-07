@@ -11,8 +11,16 @@ const recommendationSchema = new mongoose.Schema({
     interests: String
   },
   recommendation: { type: String, required: true },
-  feedback: String, // 사용자가 나중에 피드백 남길 수 있도록 추가
-  createdAt: { type: Date, default: Date.now }
+  feedback: String,
+  events: [{ 
+    title: String,
+    start: String,
+    end: String,
+    description: String,
+    color: String
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Recommendation', recommendationSchema);//(5월6일2:35) 서버에서 추천 저장과 피드백 저장
+module.exports = mongoose.model('Recommendation', recommendationSchema);
