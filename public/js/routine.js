@@ -106,6 +106,92 @@ export function initRoutineHandlers() {
   });
 }
 
+// 최근 루틴 가져오기 함수 추가
+export async function fetchRecentRoutines() {
+  try {
+    // 실제 구현에서는 서버 API 호출
+    const response = await fetch('/api/routines/recent', {
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    
+    // 서버 응답 처리
+    if (response.ok) {
+      const data = await response.json();
+      renderRecentRoutines(data.routines);
+      return data.routines;
+    } else {
+      // 오류 응답 처리
+      const error = await response.json();
+      console.error('Failed to fetch routines:', error);
+      showToast('오류', error.message || '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
+      
+      // 대체 데이터로 UI 업데이트
+      const mockRoutines = [
+        { id: 1, title: '수능 대비 학습 루틴', createdAt: '2023-05-01', subjects: ['국어', '수학', '영어'] },
+        { id: 2, title: '자격증 준비 루틴', createdAt: '2023-04-15', subjects: ['정보처리기사', '데이터베이스'] }
+      ];
+      
+      renderRecentRoutines(mockRoutines);
+      return mockRoutines;
+    }
+  } catch (error) {
+    console.error('Fetch recent routines error:', error);
+    showToast('오류', '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
+    
+    // 오류 발생 시 UI 업데이트를 위한 더미 데이터
+    const mockRoutines = [
+      { id: 1, title: '수능 대비 학습 루틴', createdAt: '2023-05-01', subjects: ['국어', '수학', '영어'] },
+      { id: 2, title: '자격증 준비 루틴', createdAt: '2023-04-15', subjects: ['정보처리기사', '데이터베이스'] }
+    ];
+    
+    renderRecentRoutines(mockRoutines);
+    return mockRoutines;
+  }
+}
+
+// 오늘의 일정 가져오기 함수 추가
+export async function fetchTodaySchedule() {
+  try {
+    // 실제 구현에서는 서버 API 호출
+    const response = await fetch('/api/schedule/today', {
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+    
+    // 서버 응답 처리
+    if (response.ok) {
+      const data = await response.json();
+      renderTodaySchedule(data.schedule);
+      return data.schedule;
+    } else {
+      // 오류 응답 처리
+      const error = await response.json();
+      console.error('Failed to fetch schedule:', error);
+      
+      // 대체 데이터로 UI 업데이트
+      const mockSchedule = [
+        { id: 1, title: '수학 문제풀이', time: '09:00-11:00', completed: false },
+        { id: 2, title: '영어 회화 연습', time: '13:00-14:30', completed: false },
+        { id: 3, title: '프로그래밍 공부', time: '16:00-18:00', completed: true }
+      ];
+      
+      renderTodaySchedule(mockSchedule);
+      return mockSchedule;
+    }
+  } catch (error) {
+    console.error('Fetch today schedule error:', error);
+    
+    // 오류 발생 시 UI 업데이트를 위한 더미 데이터
+    const mockSchedule = [
+      { id: 1, title: '수학 문제풀이', time: '09:00-11:00', completed: false },
+      { id: 2, title: '영어 회화 연습', time: '13:00-14:30', completed: false },
+      { id: 3, title: '프로그래밍 공부', time: '16:00-18:00', completed: true }
+    ];
+    
+    renderTodaySchedule(mockSchedule);
+    return mockSchedule;
+  }
+}
+
 // 루틴 생성 초기화
 function initRoutineCreation() {
   currentRoutineItems = [];
@@ -582,4 +668,118 @@ async function saveToDatabaseIfNeeded() {
   } catch (error) {
     console.error('Error saving routine to database:', error);
   }
+}
+
+// 모의 데이터 생성 함수들
+export function generateMockRoutine() {
+  return `AI가 생성한 ${currentRoutineItems.length}개 과목 학습 루틴:
+
+이 학습 계획은 ${document.getElementById('routine-duration').value}일 동안의 일정입니다.
+시작일: ${document.getElementById('routine-start-date').value}
+
+## 과목별 시간 배분
+${currentRoutineItems.map(item => `- ${item.subject}: 일 ${item.dailyHours}시간, 우선순위 ${item.priority}`).join('\n')}
+
+## 전체 루틴 요약
+1. 아침 시간대 (05:00-09:00): 집중력이 필요한 과목
+2. 오전 시간대 (09:00-12:00): 기초 개념 학습
+3. 오후 시간대 (12:00-18:00): 실습 및 응용
+4. 저녁 시간대 (18:00-22:00): 복습 및 문제 풀이
+5. 밤 시간대 (22:00-02:00): 가벼운 학습 및 정리
+
+자세한 일정은 일별 보기에서 확인하실 수 있습니다.`;
+}
+
+export function generateMockDailyRoutines() {
+  const startDate = new Date(document.getElementById('routine-start-date').value);
+  const duration = parseInt(document.getElementById('routine-duration').value);
+  const dailyRoutines = [];
+  
+  for (let day = 0; day < duration; day++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + day);
+    
+    const dateFormatter = new Intl.DateTimeFormat('ko', {
+      month: 'long',
+      day: 'numeric',
+      weekday: 'long'
+    });
+    
+    const formattedDate = dateFormatter.format(date);
+    
+    // 일별 스케줄 생성
+    const schedules = generateDaySchedules(day);
+    
+    // 일별 컨텐츠 생성
+    let content = `${formattedDate} 일정:\n\n`;
+    
+    schedules.forEach(schedule => {
+      content += `${schedule.startTime}-${schedule.endTime}: ${schedule.title}\n`;
+    });
+    
+    dailyRoutines.push({
+      day: day + 1,
+      date: formattedDate,
+      content: content,
+      schedules: schedules
+    });
+  }
+  
+  return dailyRoutines;
+}
+
+function generateDaySchedules(day) {
+  const schedules = [];
+  const subjects = currentRoutineItems.map(item => item.subject);
+  
+  // 요일에 따라 스케줄 생성 로직 변경
+  const dayOfWeek = (day % 7);
+  const isWeekend = dayOfWeek === 5 || dayOfWeek === 6; // 토/일
+  
+  // 시간대별 스케줄 추가
+  const timeSlots = isWeekend 
+    ? ['08:00', '10:00', '13:00', '15:00', '17:00'] 
+    : ['07:00', '09:00', '13:00', '16:00', '19:00'];
+  
+  timeSlots.forEach((startTime, index) => {
+    // 끝 시간 계산
+    const endTimeHour = parseInt(startTime.split(':')[0]) + 2;
+    const endTime = `${String(endTimeHour).padStart(2, '0')}:00`;
+    
+    // 과목 선택 (과목이 없는 경우 기본값 설정)
+    const subject = subjects.length > 0
+      ? subjects[(index + day) % subjects.length]
+      : ['수학', '영어', '프로그래밍'][(index + day) % 3];
+    
+    // 과목별 서로 다른 활동 생성
+    const activities = {
+      '수학': ['개념 학습', '기본 문제 풀이', '심화 문제 풀이', '오답 노트 정리', '모의고사 풀이'],
+      '영어': ['단어 암기', '문법 학습', '독해 연습', '듣기 연습', '말하기 연습'],
+      '국어': ['문학 작품 읽기', '문법 개념 정리', '비문학 독해', '작문 연습', '기출 문제 분석'],
+      '과학': ['이론 학습', '개념 정리', '실험 리포트', '문제 풀이', '심화 개념 학습'],
+      '사회': ['역사 연표 정리', '개념 요약', '기출 문제 풀이', '논술 연습', '시사 이슈 정리'],
+      '프로그래밍': ['기본 문법 학습', '알고리즘 문제 풀이', '프로젝트 작업', '코드 리뷰', '디버깅 연습'],
+      '음악': ['이론 학습', '감상 및 분석', '연주 연습', '창작 활동', '리듬 연습'],
+      '미술': ['스케치 연습', '색채 이론 학습', '작품 분석', '창작 활동', '미술사 학습'],
+      '체육': ['기초 체력 훈련', '기술 연습', '전술 학습', '경기 분석', '회복 트레이닝']
+    };
+    
+    // 활동 선택
+    let activity = '학습';
+    if (activities[subject]) {
+      const activityIndex = (day + index) % activities[subject].length;
+      activity = activities[subject][activityIndex];
+    }
+    
+    // 스케줄 추가
+    schedules.push({
+      startTime: startTime,
+      endTime: endTime,
+      title: `${subject} - ${activity}`,
+      subject: subject,
+      notes: `${subject} ${activity}에 집중하세요. ${isWeekend ? '주말에는 여유있게 학습하세요.' : ''}`
+    });
+  });
+  
+  return schedules;
 }

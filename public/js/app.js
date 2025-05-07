@@ -1,5 +1,5 @@
 // 각 모듈 불러오기
-import { checkAutoLogin, login, register, logout } from './auth.js';
+import { checkAutoLogin, login, register, logout, getAuthToken } from './auth.js';
 import { 
   initNavigation, 
   showToast,
@@ -118,11 +118,7 @@ export async function fetchUserData() {
   }
 }
 
-// 인증 토큰 가져오기
-export function getAuthToken() {
-  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-}
-
-// 글로벌로 필요한 함수들 내보내기
+// 글로벌로 필요한 함수들 노출
 window.initCalendar = initCalendar;
 window.showToast = showToast;
+window.fetchUserData = fetchUserData;
