@@ -893,9 +893,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const registerForm = document.getElementById('register-form');
   const loginUsername = document.getElementById('login-username');
   const loginPassword = document.getElementById('login-password');
-  const registerUsername = document.getElementById('register-username');
-  const registerPassword = document.getElementById('register-password');
-  const registerConfirmPassword = document.getElementById('register-confirm-password');
   const rememberMe = document.getElementById('remember-me');
   const backToLoginBtn = document.getElementById('back-to-login');
   const logoutBtn = document.getElementById('logout-btn');
@@ -1065,11 +1062,52 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 회원가입 폼 제출
-    registerForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      register();
-    });
     
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const username = document.getElementById('register-username').value.trim();
+      const password = document.getElementById('register-password').value;
+      const confirmPassword = document.getElementById('register-confirm-password').value;
+      
+      if (!username || !password) {
+        showToast('오류', '아이디와 비밀번호를 입력해주세요.', 'error');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        showToast('오류', '비밀번호가 일치하지 않습니다.', 'error');
+        return;
+      }
+      
+      try {
+        // 실제 구현에서는 서버 API 호출
+        const response = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok) {
+            localStorage.setItem('authToken', data.token || 'mock-token');
+            localStorage.setItem('username', username);
+            
+            showApp(username);
+            showToast('성공', '회원가입이 완료되었습니다.', 'success');
+          } else {
+            showToast('오류', data.message || '회원가입 중 오류가 발생했습니다.', 'error');
+          }
+        } else {
+          const data = await response.json();
+          showToast('오류', data.message || '회원가입 중 오류가 발생했습니다.', 'error');
+        }
+      } catch (error) {
+        console.error('Register error:', error);
+        showToast('오류', '회원가입 중 오류가 발생했습니다.', 'error');
+      }
+    });
     // 로그아웃 버튼
     logoutBtn.addEventListener('click', () => {
       logout();

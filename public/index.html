@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI 학습 루틴 플래너</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/main.min.css">
-  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  <script src="js/index.global.min.js"></script>
 </head>
 <body>
   <!-- Toast 알림 컨테이너 -->
@@ -366,6 +365,7 @@
           </div>
           <div class="form-group">
             <label for="specific-days">특정 요일만</label>
+            <input type="hidden" id="specific-days">
             <div class="days-checkboxes">
               <div class="day-checkbox">
                 <input type="checkbox" id="day-mon" value="mon">

@@ -25,9 +25,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({
-  origin: 'http://localhost:3000',  // 허용할 출처
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],  // 허용할 HTTP 메서드
-  allowedHeaders: ['Content-Type', 'Authorization']  // 허용할 헤더
+  origin: '*',  // 모든 출처 허용 (개발 환경에서만 사용)
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(session({
@@ -112,15 +112,6 @@ app.post('/logout', (req, res) => {
     res.clearCookie('connect.sid');
     res.json({ ok: true });
   });
-});
-
-
-app.get('/main.min.css', (req, res) => {
-  res.redirect('/css/style.css');
-});
-
-app.get('/main.min.js', (req, res) => {
-  res.redirect('/js/app.js');
 });
 
 // Generate recommendation using Hugging Face API
