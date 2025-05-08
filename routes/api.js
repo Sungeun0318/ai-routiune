@@ -149,6 +149,26 @@ router.post('/feedback', requireLogin, async (req, res) => {
   }
 });
 
+router.post('/save-routine', requireLogin, async (req, res) => {
+  try {
+    // 클라이언트에서 받은 루틴 데이터
+    const routineData = req.body;
+    
+    // 데이터베이스에 저장 (간단한 예시)
+    const savedRoutine = await Recommendation.create({
+      user: req.session.userId,
+      profile: routineData.routineItems,
+      recommendation: routineData.fullRoutine,
+      createdAt: new Date()
+    });
+    
+    res.json({ success: true, id: savedRoutine._id });
+  } catch (err) {
+    console.error('Save routine error:', err);
+    res.status(500).json({ error: '루틴을 저장하는 중 오류가 발생했습니다.' });
+  }
+});
+
 // 사용자 통계 가져오기
 router.get('/user-stats', requireLogin, async (req, res) => {
   try {

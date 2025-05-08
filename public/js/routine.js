@@ -115,37 +115,27 @@ export async function fetchRecentRoutines() {
     });
     
     // 서버 응답 처리
-    if (response.ok) {
-      const data = await response.json();
-      renderRecentRoutines(data.routines);
-      return data.routines;
-    } else {
-      // 오류 응답 처리
-      const error = await response.json();
-      console.error('Failed to fetch routines:', error);
-      showToast('오류', error.message || '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
-      
-      // 대체 데이터로 UI 업데이트
-      const mockRoutines = [
-        { id: 1, title: '수능 대비 학습 루틴', createdAt: '2023-05-01', subjects: ['국어', '수학', '영어'] },
-        { id: 2, title: '자격증 준비 루틴', createdAt: '2023-04-15', subjects: ['정보처리기사', '데이터베이스'] }
-      ];
-      
-      renderRecentRoutines(mockRoutines);
-      return mockRoutines;
+    if (!response.ok) {
+      throw new Error(`서버 오류: ${response.status}`);
     }
+    
+    // 응답 타입 확인
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('올바르지 않은 응답 형식');
+    }
+    
+    const data = await response.json();
+    renderRecentRoutines(data.routines || []);
+    return data.routines || [];
+    
   } catch (error) {
     console.error('Fetch recent routines error:', error);
-    showToast('오류', '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
+    showToast('오류', error.message || '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
     
-    // 오류 발생 시 UI 업데이트를 위한 더미 데이터
-    const mockRoutines = [
-      { id: 1, title: '수능 대비 학습 루틴', createdAt: '2023-05-01', subjects: ['국어', '수학', '영어'] },
-      { id: 2, title: '자격증 준비 루틴', createdAt: '2023-04-15', subjects: ['정보처리기사', '데이터베이스'] }
-    ];
-    
-    renderRecentRoutines(mockRoutines);
-    return mockRoutines;
+    // 빈 배열 반환 및 UI 업데이트
+    renderRecentRoutines([]);
+    return [];
   }
 }
 
