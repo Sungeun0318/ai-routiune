@@ -107,36 +107,37 @@ export function initRoutineHandlers() {
 }
 
 // 최근 루틴 가져오기 함수 추가
-export async function fetchRecentRoutines() {
-  try {
-    // 실제 구현에서는 서버 API 호출
-    const response = await fetch('/api/routines/recent', {
+export function fetchRecentRoutines() {
+  return new Promise((resolve) => {
+    fetch('/api/routines/recent', {
       headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format');
+      }
+      
+      return response.json();
+    })
+    .then(data => {
+      const routines = data.routines || [];
+      renderRecentRoutines(routines);
+      resolve(routines);
+    })
+    .catch(error => {
+      console.error('Fetch recent routines error:', error);
+      
+      // 오류 시 빈 목록 표시
+      renderRecentRoutines([]);
+      showToast('오류', '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
+      resolve([]);
     });
-    
-    // 서버 응답 처리
-    if (!response.ok) {
-      throw new Error(`서버 오류: ${response.status}`);
-    }
-    
-    // 응답 타입 확인
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('올바르지 않은 응답 형식');
-    }
-    
-    const data = await response.json();
-    renderRecentRoutines(data.routines || []);
-    return data.routines || [];
-    
-  } catch (error) {
-    console.error('Fetch recent routines error:', error);
-    showToast('오류', error.message || '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
-    
-    // 빈 배열 반환 및 UI 업데이트
-    renderRecentRoutines([]);
-    return [];
-  }
+  });
 }
 
 // 오늘의 일정 가져오기 함수 추가

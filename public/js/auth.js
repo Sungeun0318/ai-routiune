@@ -3,13 +3,50 @@ import { fetchUserData } from './app.js';
 
 // 자동 로그인 확인
 export function checkAutoLogin() {
-  const token = localStorage.getItem('authToken');
-  const username = localStorage.getItem('username');
-  
-  if (token && username) {
-    showApp(username);
-    fetchUserData();
-  }
+  return new Promise((resolve) => {
+    const token = localStorage.getItem('authToken');
+    const username = localStorage.getItem('username');
+    
+    if (!token || !username) {
+      resolve(false);
+      return;
+    }
+    
+    // 토큰 유효성 검사 (선택 사항)
+    fetch('/api/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(response => {
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error('Invalid token');
+    })
+    .then(data => {
+      if (data.ok && data.user) {
+        // 서버 검증 성공
+        showApp(data.user.username || username);
+        resolve(true);
+      } else {
+        // 서버에서 유효한 응답을 받았지만 인증 실패
+        logout(false);
+        resolve(false);
+      }
+    })
+    .catch(error => {
+      console.error('Token validation error:', error);
+      
+      // 서버 검증 실패 시, 로컬 정보만으로 로그인 시도 (대체 방법)
+      showApp(username);
+      resolve(true);
+      
+      // 또는 서버 오류 시 로그아웃 처리 (더 안전한 방법)
+      /*
+      logout(false);
+      resolve(false);
+      */
+    });
+  });
 }
 
 // 로그인
@@ -98,24 +135,51 @@ export async function register() {
 }
 
 // 로그아웃
-export async function logout() {
-  try {
-    const response = await fetch('/logout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
+export function logout(showNotification = true) {
+  // 로그아웃 API 호출
+  fetch('/logout', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+  })
+  .catch(error => {
+    console.error('Logout API error:', error);
+  })
+  .finally(() => {
     // 로컬 스토리지 데이터 삭제
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('username');
     
-    hideApp();
-    showToast('성공', '로그아웃되었습니다.', 'success');
-  } catch (error) {
-    console.error('Logout error:', error);
-    showToast('오류', '로그아웃 중 오류가 발생했습니다.', 'error');
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('login-container').style.display = 'flex';
+    
+    // 로그인 탭으로 전환
+    const loginTab = document.getElementById('login-tab');
+    if (loginTab) {
+      loginTab.click();
+    }
+    
+    if (showNotification) {
+      showToast('성공', '로그아웃되었습니다.', 'success');
+    }
+  });
+}
+
+
+export function showApp(username) {
+  document.getElementById('login-container').style.display = 'none';
+  document.getElementById('app-container').style.display = 'flex';
+  
+  // 사용자 이름 표시
+  const usernameDisplay = document.getElementById('username-display');
+  if (usernameDisplay) {
+    usernameDisplay.textContent = username;
+  }
+  
+  const profileUsername = document.getElementById('profile-username');
+  if (profileUsername) {
+    profileUsername.textContent = username;
   }
 }
 

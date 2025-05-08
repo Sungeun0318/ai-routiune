@@ -22,9 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 앱 초기화 함수
 function initApp() {
-  // 자동 로그인 확인
-  checkAutoLogin();
-  
   // UI 초기화
   initNavigation();
   
@@ -33,7 +30,24 @@ function initApp() {
   
   // 이벤트 리스너 설정
   setupEventListeners();
+  
+  // 자동 로그인 확인 - 비동기 함수를 Promise 처리로 변경
+  checkAutoLogin()
+    .then(isLoggedIn => {
+      if (isLoggedIn) {
+        // 로그인 성공 시 사용자 데이터 가져오기
+        return fetchUserData();
+      }
+    })
+    .catch(error => {
+      console.error('Auto-login error:', error);
+    });
 }
+
+// DOM 로드 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+  initApp();
+});
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
@@ -89,33 +103,57 @@ function setupEventListeners() {
 }
 
 // 사용자 데이터 가져오기
-export async function fetchUserData() {
-  try {
-    // 프로필 데이터 가져오기
-    const response = await fetch('/api/user-stats', {
-      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-    });
-    
-    if (response.ok) {
-      const userData = await response.json();
-      
-      // 사용자 통계 정보 업데이트
-      document.getElementById('profile-routine-count').textContent = userData.routineCount;
-      document.getElementById('profile-completed-count').textContent = userData.completedCount;
-      
-      // 개인 정보 업데이트
-      const username = localStorage.getItem('username') || sessionStorage.getItem('username');
-      document.getElementById('profile-username').textContent = username;
-      document.getElementById('profile-display-name').value = username;
+export function fetchUserData() {
+  return new Promise((resolve, reject) => {
+    try {
+      // 프로필 데이터 가져오기
+      fetch('/api/user-stats', {
+        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+      })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error('Failed to fetch user data');
+      })
+      .then(userData => {
+        // 사용자 통계 정보 업데이트
+        const profileRoutineCount = document.getElementById('profile-routine-count');
+        if (profileRoutineCount) {
+          profileRoutineCount.textContent = userData.routineCount || 0;
+        }
+        
+        const profileCompletedCount = document.getElementById('profile-completed-count');
+        if (profileCompletedCount) {
+          profileCompletedCount.textContent = userData.completedCount || 0;
+        }
+        
+        // 최근 루틴 및 오늘의 일정 가져오기
+        Promise.all([
+          fetchRecentRoutines().catch(err => console.error('Fetch routines error:', err)),
+          fetchTodaySchedule().catch(err => console.error('Fetch schedule error:', err))
+        ])
+        .then(() => resolve(true))
+        .catch(err => {
+          console.error('Fetch data error:', err);
+          resolve(false); // 일부 데이터를 가져오지 못해도 전체 프로세스는 성공으로 처리
+        });
+      })
+      .catch(error => {
+        console.error('Fetch user data error:', error);
+        // 통계를 가져오지 못해도 루틴과 일정은 시도
+        Promise.all([
+          fetchRecentRoutines().catch(err => console.error('Fetch routines error:', err)),
+          fetchTodaySchedule().catch(err => console.error('Fetch schedule error:', err))
+        ])
+        .then(() => resolve(false))
+        .catch(() => resolve(false));
+      });
+    } catch (error) {
+      console.error('Fetch user data error:', error);
+      reject(error);
     }
-    
-    // 최근 루틴 및 오늘의 일정 가져오기
-    fetchRecentRoutines();
-    fetchTodaySchedule();
-  } catch (error) {
-    console.error('Fetch user data error:', error);
-    showToast('오류', '사용자 데이터를 불러오는 중 오류가 발생했습니다.', 'error');
-  }
+  });
 }
 
 // 글로벌로 필요한 함수들 노출
