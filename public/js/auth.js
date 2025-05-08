@@ -1,4 +1,5 @@
-import { showToast, showApp, hideApp } from './ui.js';
+// ui.js에서는 showApp을 가져오지 않고 다른 함수만 가져옵니다
+import { showToast, hideApp } from './ui.js';
 import { fetchUserData } from './app.js';
 
 // 자동 로그인 확인
@@ -17,38 +18,28 @@ export function checkAutoLogin() {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(response => {
-      if (response.ok) {
+      // 응답이 JSON인지 확인
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
         return response.json();
       }
-      throw new Error('Invalid token');
+      throw new Error('Invalid response format');
     })
     .then(data => {
       if (data.ok && data.user) {
-        // 서버 검증 성공
         showApp(data.user.username || username);
         resolve(true);
       } else {
-        // 서버에서 유효한 응답을 받았지만 인증 실패
         logout(false);
         resolve(false);
       }
     })
     .catch(error => {
       console.error('Token validation error:', error);
-      
-      // 서버 검증 실패 시, 로컬 정보만으로 로그인 시도 (대체 방법)
-      showApp(username);
-      resolve(true);
-      
-      // 또는 서버 오류 시 로그아웃 처리 (더 안전한 방법)
-      /*
-      logout(false);
       resolve(false);
-      */
     });
-  });
-}
-
+  }
+)}
 // 로그인
 export async function login() {
   const username = document.getElementById('login-username').value.trim();
@@ -151,8 +142,7 @@ export function logout(showNotification = true) {
     sessionStorage.removeItem('authToken');
     sessionStorage.removeItem('username');
     
-    document.getElementById('app-container').style.display = 'none';
-    document.getElementById('login-container').style.display = 'flex';
+    hideApp();
     
     // 로그인 탭으로 전환
     const loginTab = document.getElementById('login-tab');
@@ -166,7 +156,7 @@ export function logout(showNotification = true) {
   });
 }
 
-
+// 앱 UI 표시 (ui.js에서 import하지 않고 여기서 정의)
 export function showApp(username) {
   document.getElementById('login-container').style.display = 'none';
   document.getElementById('app-container').style.display = 'flex';

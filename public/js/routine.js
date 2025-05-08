@@ -56,11 +56,18 @@ export function initRoutineHandlers() {
   
   // 루틴 생성 버튼
   document.getElementById('generate-routine').addEventListener('click', () => {
+    // 중복 클릭 방지
+    document.getElementById('generate-routine').disabled = true;
+    
     if (currentRoutineItems.length === 0) {
       showToast('오류', '최소 1개 이상의 항목을 추가해주세요.', 'error');
+      document.getElementById('generate-routine').disabled = false;
       return;
     }
-    
+    generatedRoutine = null;
+    dailyRoutines = [];
+    currentDayIndex = 0;
+
     generateRoutine();
   });
   
@@ -113,16 +120,11 @@ export function fetchRecentRoutines() {
       headers: { 'Authorization': `Bearer ${getAuthToken()}` }
     })
     .then(response => {
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
       const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Invalid response format');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json();
       }
-      
-      return response.json();
+      throw new Error('Invalid response format');
     })
     .then(data => {
       const routines = data.routines || [];
@@ -131,10 +133,6 @@ export function fetchRecentRoutines() {
     })
     .catch(error => {
       console.error('Fetch recent routines error:', error);
-      
-      // 오류 시 빈 목록 표시
-      renderRecentRoutines([]);
-      showToast('오류', '루틴 목록을 불러오는 중 오류가 발생했습니다.', 'error');
       resolve([]);
     });
   });
@@ -143,43 +141,20 @@ export function fetchRecentRoutines() {
 // 오늘의 일정 가져오기 함수 추가
 export async function fetchTodaySchedule() {
   try {
-    // 실제 구현에서는 서버 API 호출
     const response = await fetch('/api/schedule/today', {
       headers: { 'Authorization': `Bearer ${getAuthToken()}` }
     });
     
-    // 서버 응답 처리
-    if (response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
-      renderTodaySchedule(data.schedule);
-      return data.schedule;
-    } else {
-      // 오류 응답 처리
-      const error = await response.json();
-      console.error('Failed to fetch schedule:', error);
-      
-      // 대체 데이터로 UI 업데이트
-      const mockSchedule = [
-        { id: 1, title: '수학 문제풀이', time: '09:00-11:00', completed: false },
-        { id: 2, title: '영어 회화 연습', time: '13:00-14:30', completed: false },
-        { id: 3, title: '프로그래밍 공부', time: '16:00-18:00', completed: true }
-      ];
-      
-      renderTodaySchedule(mockSchedule);
-      return mockSchedule;
+      renderTodaySchedule(data.schedule || []);
+      return data.schedule || [];
     }
+    throw new Error('Invalid response format');
   } catch (error) {
     console.error('Fetch today schedule error:', error);
-    
-    // 오류 발생 시 UI 업데이트를 위한 더미 데이터
-    const mockSchedule = [
-      { id: 1, title: '수학 문제풀이', time: '09:00-11:00', completed: false },
-      { id: 2, title: '영어 회화 연습', time: '13:00-14:30', completed: false },
-      { id: 3, title: '프로그래밍 공부', time: '16:00-18:00', completed: true }
-    ];
-    
-    renderTodaySchedule(mockSchedule);
-    return mockSchedule;
+    return [];
   }
 }
 
@@ -326,32 +301,35 @@ async function generateRoutine() {
       body: JSON.stringify(requestData)
     });
     
-    // 테스트 환경에서는 아래 코드로 실행
+    // 응답 처리
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || '루틴 생성 실패');
+      throw new Error('루틴 생성 실패');
     }
     
-    const responseData = await response.json();
-    
-    // 샘플 데이터 생성 (실제는 API 응답 사용)
-    const mockResponse = {
-      fullRoutine: responseData.recommendation || generateMockRoutine(),
-      dailyRoutines: generateMockDailyRoutines()
-    };
-    
-    generatedRoutine = mockResponse.fullRoutine;
-    dailyRoutines = mockResponse.dailyRoutines;
-    currentDayIndex = 0;
-    
-    // 결과 표시
-    document.getElementById('full-routine-content').textContent = generatedRoutine;
-    updateDailyRoutineView();
-    
-    showModal('routineResult');
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const responseData = await response.json();
+      
+      // 루틴 데이터 설정
+      generatedRoutine = responseData.recommendation || generateMockRoutine();
+      dailyRoutines = responseData.dailyRoutines || generateMockDailyRoutines();
+      
+      // 결과 표시
+      document.getElementById('full-routine-content').textContent = generatedRoutine;
+      updateDailyRoutineView();
+      
+      showModal('routineResult');
+    } else {
+      throw new Error('Invalid response format');
+    }
   } catch (error) {
     console.error('Generate routine error:', error);
     showToast('오류', '루틴 생성 중 오류가 발생했습니다.', 'error');
+  } finally {
+    // 버튼 활성화
+    if (document.getElementById('generate-routine')) {
+      document.getElementById('generate-routine').disabled = false;
+    }
   }
 }
 
