@@ -1,6 +1,15 @@
-// ui.js에서는 showApp을 가져오지 않고 다른 함수만 가져옵니다
 import { showToast, hideApp } from './ui.js';
-import { fetchUserData } from './app.js';
+
+// 개발 모드 설정 - 서버 API가 준비되면 false로 변경
+const DEV_MODE = false;
+
+// 사용자 데이터 가져오기 함수를 위한 변수 선언
+let fetchUserDataFunction = null;
+
+// fetchUserData 함수 설정
+export function setFetchUserDataFunction(fn) {
+  fetchUserDataFunction = fn;
+}
 
 // 자동 로그인 확인
 export function checkAutoLogin() {
@@ -13,11 +22,14 @@ export function checkAutoLogin() {
       return;
     }
     
-    // 토큰 유효성 검사 자체를 건너뛰고 로컬 정보만 사용해 로그인
-    showApp(username);
-    resolve(true);
+    if (DEV_MODE) {
+      // 개발 모드: 로컬 정보만 사용
+      showApp(username);
+      resolve(true);
+      return;
+    }
     
-  // 서버 API가 준비되면 아래 코드를 사용할 수 있습니다
+    // 프로덕션 모드: 서버 API 호출
     fetch('/api/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -39,12 +51,13 @@ export function checkAutoLogin() {
     })
     .catch(error => {
       console.error('Token validation error:', error);
-      // 서버 검증 실패 시 로컬 정보로 로그인
+      // 개발 모드처럼 로컬 정보로 로그인 처리
       showApp(username);
       resolve(true);
     });
   });
 }
+
 // 로그인
 export async function login() {
   const username = document.getElementById('login-username').value.trim();
@@ -56,8 +69,28 @@ export async function login() {
     return;
   }
   
+  if (DEV_MODE) {
+    // 개발 모드: 로컬에서 처리
+    const authToken = 'dev-token-' + Date.now();
+    if (rememberMe) {
+      localStorage.setItem('authToken', authToken);
+      localStorage.setItem('username', username);
+    } else {
+      sessionStorage.setItem('authToken', authToken);
+      sessionStorage.setItem('username', username);
+    }
+    
+    showApp(username);
+    if (fetchUserDataFunction) {
+      fetchUserDataFunction();
+    }
+    showToast('성공', '로그인되었습니다.', 'success');
+    return;
+  }
+  
+  // 프로덕션 모드: 서버 API 호출
   try {
-    const response = await fetch('/login', {
+    const response = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -77,7 +110,9 @@ export async function login() {
       }
       
       showApp(username);
-      fetchUserData();
+      if (fetchUserDataFunction) {
+        fetchUserDataFunction();
+      }
       showToast('성공', '로그인되었습니다.', 'success');
     } else {
       showToast('오류', data.message || '아이디 또는 비밀번호가 일치하지 않습니다.', 'error');
@@ -104,8 +139,23 @@ export async function register() {
     return;
   }
   
+  if (DEV_MODE) {
+    // 개발 모드: 로컬에서 처리
+    const authToken = 'dev-token-' + Date.now();
+    localStorage.setItem('authToken', authToken);
+    localStorage.setItem('username', username);
+    
+    showApp(username);
+    if (fetchUserDataFunction) {
+      fetchUserDataFunction();
+    }
+    showToast('성공', '회원가입이 완료되었습니다.', 'success');
+    return;
+  }
+  
+  // 프로덕션 모드: 서버 API 호출
   try {
-    const response = await fetch('/register', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -114,12 +164,13 @@ export async function register() {
     const data = await response.json();
     
     if (response.ok && data.ok) {
-      // 회원가입 후 자동 로그인
       localStorage.setItem('authToken', data.token || 'session-token');
       localStorage.setItem('username', username);
       
       showApp(username);
-      fetchUserData();
+      if (fetchUserDataFunction) {
+        fetchUserDataFunction();
+      }
       showToast('성공', '회원가입이 완료되었습니다.', 'success');
     } else {
       showToast('오류', data.message || '회원가입 중 오류가 발생했습니다.', 'error');
@@ -132,16 +183,8 @@ export async function register() {
 
 // 로그아웃
 export function logout(showNotification = true) {
-  // 로그아웃 API 호출
-  fetch('/logout', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-  })
-  .catch(error => {
-    console.error('Logout API error:', error);
-  })
-  .finally(() => {
-    // 로컬 스토리지 데이터 삭제
+  if (DEV_MODE) {
+    // 개발 모드: 로컬에서 처리
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     sessionStorage.removeItem('authToken');
@@ -149,7 +192,33 @@ export function logout(showNotification = true) {
     
     hideApp();
     
-    // 로그인 탭으로 전환
+    const loginTab = document.getElementById('login-tab');
+    if (loginTab) {
+      loginTab.click();
+    }
+    
+    if (showNotification) {
+      showToast('성공', '로그아웃되었습니다.', 'success');
+    }
+    return;
+  }
+  
+  // 프로덕션 모드: 서버 API 호출
+  fetch('/api/logout', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+  })
+  .catch(error => {
+    console.error('Logout API error:', error);
+  })
+  .finally(() => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('username');
+    
+    hideApp();
+    
     const loginTab = document.getElementById('login-tab');
     if (loginTab) {
       loginTab.click();
@@ -161,7 +230,7 @@ export function logout(showNotification = true) {
   });
 }
 
-// 앱 UI 표시 (ui.js에서 import하지 않고 여기서 정의)
+// 앱 UI 표시
 export function showApp(username) {
   document.getElementById('login-container').style.display = 'none';
   document.getElementById('app-container').style.display = 'flex';
@@ -175,34 +244,6 @@ export function showApp(username) {
   const profileUsername = document.getElementById('profile-username');
   if (profileUsername) {
     profileUsername.textContent = username;
-  }
-}
-
-// 프로필 업데이트
-export async function updateProfile(formData) {
-  try {
-    const response = await fetch('/api/update-profile', {
-      method: 'PUT',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
-      },
-      body: JSON.stringify(formData)
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok && data.ok) {
-      showToast('성공', '프로필이 업데이트되었습니다.', 'success');
-      return true;
-    } else {
-      showToast('오류', data.message || '프로필 업데이트 중 오류가 발생했습니다.', 'error');
-      return false;
-    }
-  } catch (error) {
-    console.error('Update profile error:', error);
-    showToast('오류', '프로필 업데이트 중 오류가 발생했습니다.', 'error');
-    return false;
   }
 }
 

@@ -1,3 +1,4 @@
+// 1. 모듈 및 DB 연결
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
@@ -10,7 +11,6 @@ const apiRoutes = require('./routes/api');
 
 const app = express();
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -18,12 +18,12 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// 미들웨어
+// 2. 미들웨어 설정
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({
-  origin: '*',  // 모든 출처 허용 (개발 환경에서만 사용)
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -34,19 +34,20 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 7-day session
+    maxAge: 1000 * 60 * 60 * 24 * 7
   }
 }));
 
-// 라우트
-app.use('/', authRoutes);
+app.use('/api', authRoutes);  // ✅ 이걸로 수정
 app.use('/api', apiRoutes);
 
-// 모든 요청을 index.html로 라우팅 (SPA 지원)
+
+// ⛔ 이게 맨 아래에 있어야 합니다
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 서버 시작
+
+// 5. 서버 실행
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 서버가 http://localhost:${PORT} 에서 실행 중입니다`));

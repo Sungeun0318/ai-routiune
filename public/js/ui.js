@@ -1,6 +1,4 @@
 // UI 관련 조작 함수들
-import { fetchUserData } from './app.js';
-
 // 모달 요소 참조
 const modals = {
   routine: () => document.getElementById('routine-modal'),

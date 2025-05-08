@@ -1,4 +1,5 @@
 import { checkAutoLogin, login, register, logout, getAuthToken, showApp } from './auth.js';
+import { setFetchUserDataFunction } from './auth.js';
 import { 
   initNavigation, 
   showToast,
@@ -29,7 +30,9 @@ export function initApp() {
   
   // 이벤트 리스너 설정
   setupEventListeners();
-  
+
+  setFetchUserDataFunction(fetchUserData);
+
   // 자동 로그인 확인
   checkAutoLogin()
     .then(isLoggedIn => {
@@ -43,6 +46,7 @@ export function initApp() {
     });
 }
 
+setFetchUserDataFunction(fetchUserData);
 // DOM 로드 이벤트 - 단 한 번만 실행되도록 리스너를 직접 정의
 document.addEventListener('DOMContentLoaded', function initAppOnce() {
   // 리스너를 한 번 실행 후 제거하여 중복 실행 방지
