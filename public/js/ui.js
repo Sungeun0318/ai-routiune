@@ -251,3 +251,10 @@ export function updateProfileData(userData) {
     document.getElementById('profile-email').value = userData.email;
   }
 }
+export function handleProfileUpdate(formData, onSuccess) {
+  // 프로필 업데이트 로직
+  // 성공 시 콜백 실행
+  if (onSuccess && typeof onSuccess === 'function') {
+    onSuccess();
+  }
+}

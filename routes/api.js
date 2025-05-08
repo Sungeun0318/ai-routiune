@@ -12,47 +12,116 @@ const requireLogin = (req, res, next) => {
 // AI를 통한 추천 생성 함수
 async function getRecommendation(profile) {
   try {
+    // API 키 확인
+    if (!process.env.HF_API_TOKEN) {
+      console.error('Hugging Face API 키가 설정되지 않았습니다.');
+      return '설정 오류: API 키가 없습니다. 관리자에게 문의하세요.';
+    }
+
     const prompt = `사용자 정보:
-이름: ${profile.name}
-목표: ${profile.goal}
-가능 시간: ${profile.hours}시간/일
-학습 방법: ${profile.method}
-집중 시간대: ${profile.focusTime}
-관심 분야: ${profile.interests}
+이름: ${profile.name || '사용자'}
+목표: ${profile.goal || '학습 계획 수립'}
+가능 시간: ${profile.hours || '4'}시간/일
+학습 방법: ${profile.method || '자기주도학습'}
+집중 시간대: ${profile.focusTime || '오전'}
+관심 분야: ${profile.interests || '수학, 영어, 프로그래밍'}
 
 위 정보를 바탕으로 해당 사용자에게 최적화된 일간 또는 주간 단위의 자세한 학습 루틴을 추천해주세요. 
 각 시간대별로 구체적인 활동을 제안하고, 집중 시간대와 관심 분야를 적극 활용한 루틴을 제공해주세요.
 캘린더 형식에 적합하게 시간대별로 구분되고 일관된 형식으로 제공해주세요.`;
 
-    // Call Hugging Face API
-    const response = await axios.post(
-      'https://api-inference.huggingface.co/models/meta-llama/Llama-2-70b-chat-hf',
-      { inputs: prompt },
-      {
-        headers: {
-          'Authorization': `Bearer ${process.env.HF_API_TOKEN}`,
-          'Content-Type': 'application/json'
+    console.log('Hugging Face API 요청 시작...');
+    
+    // 이전 모델이 사용불가능하면 다른 모델을 시도
+    const models = [
+      'meta-llama/Llama-2-70b-chat-hf',  // 원래 모델
+      'mistralai/Mistral-7B-Instruct-v0.2', // 백업 모델 1
+      'microsoft/phi-2' // 백업 모델 2
+    ];
+    
+    let lastError = null;
+    let recommendation = null;
+    
+    // 여러 모델 시도
+    for (const model of models) {
+      try {
+        console.log(`모델 시도: ${model}`);
+        
+        // API 요청 설정
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.HF_API_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ inputs: prompt })
+        };
+        
+        // 디버깅을 위한 정보 출력
+        console.log('API 요청 URL:', `https://api-inference.huggingface.co/models/${model}`);
+        console.log('인증 헤더 존재:', !!requestOptions.headers.Authorization);
+        
+        // fetch 대신 axios 사용
+        const response = await axios.post(
+          `https://api-inference.huggingface.co/models/${model}`,
+          { inputs: prompt },
+          {
+            headers: {
+              'Authorization': `Bearer ${process.env.HF_API_TOKEN}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        // 응답 데이터 확인
+        console.log('API 응답 상태:', response.status);
+        console.log('응답 데이터 유형:', typeof response.data);
+        
+        // 응답 데이터 처리
+        if (response.data && response.data[0]) {
+          recommendation = response.data[0].generated_text || '';
+          
+          // 프롬프트 제거
+          if (recommendation.includes(prompt)) {
+            recommendation = recommendation.substring(prompt.length).trim();
+          }
+          
+          console.log('응답 텍스트 길이:', recommendation.length);
+          break; // 성공하면 루프 종료
         }
-      }
-    );
-
-    // Extract the generated text from the response
-    let recommendation = '';
-    if (response.data && response.data[0]) {
-      recommendation = response.data[0].generated_text || '';
-      
-      // Clean up the response - remove the prompt from the start if present
-      if (recommendation.includes(prompt)) {
-        recommendation = recommendation.substring(prompt.length).trim();
+      } catch (modelError) {
+        console.error(`${model} 모델 오류:`, modelError.message);
+        lastError = modelError;
+        // 다음 모델 시도
       }
     }
     
+    // 모든 모델이 실패한 경우
+    if (!recommendation) {
+      console.error('모든 모델 요청 실패');
+      throw lastError || new Error('Unknown error');
+    }
+    
     return recommendation || '추천 루틴을 생성하는 중 오류가 발생했습니다';
+    
   } catch (error) {
-    console.error('Hugging Face API Error:', error.response?.data || error.message);
+    console.error('Hugging Face API Error 상세 정보:', error);
+    
+    // 오류 응답이 있는 경우 더 자세한 정보 출력
+    if (error.response) {
+      console.error('상태 코드:', error.response.status);
+      console.error('응답 데이터:', error.response.data);
+      console.error('응답 헤더:', error.response.headers);
+    }
+    
     if (error.response?.status === 429) {
       return '현재 많은 요청으로 인해 잠시 후에 다시 시도해주세요.';
+    } else if (error.response?.status === 404) {
+      return 'API 모델을 찾을 수 없습니다. 관리자에게 문의하세요.';
+    } else if (error.response?.status === 401 || error.response?.status === 403) {
+      return 'API 인증 오류가 발생했습니다. 관리자에게 문의하세요.';
     }
+    
     return '추천 루틴을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요.';
   }
 }
@@ -184,6 +253,14 @@ router.get('/user-stats', requireLogin, async (req, res) => {
     console.error('Error fetching user stats:', err);
     res.status(500).json({ error: '사용자 통계를 불러오는 중 오류가 발생했습니다' });
   }
+});
+
+// ✅ 자동 로그인 확인 추가
+router.get('/me', (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: '로그인 필요' });
+  }
+  res.json({ ok: true });
 });
 
 module.exports = router;

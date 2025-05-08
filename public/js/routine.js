@@ -55,15 +55,16 @@ export function initRoutineHandlers() {
   });
   
   // 루틴 생성 버튼
-  document.getElementById('generate-routine').addEventListener('click', () => {
-    // 중복 클릭 방지
-    document.getElementById('generate-routine').disabled = true;
-    
-    if (currentRoutineItems.length === 0) {
-      showToast('오류', '최소 1개 이상의 항목을 추가해주세요.', 'error');
-      document.getElementById('generate-routine').disabled = false;
-      return;
-    }
+document.getElementById('generate-routine').addEventListener('click', () => {
+  // 중복 클릭 방지
+  const generateButton = document.getElementById('generate-routine');
+  generateButton.disabled = true;
+  
+  if (currentRoutineItems.length === 0) {
+    showToast('오류', '최소 1개 이상의 항목을 추가해주세요.', 'error');
+    generateButton.disabled = false;
+    return;
+  }
     generatedRoutine = null;
     dailyRoutines = [];
     currentDayIndex = 0;

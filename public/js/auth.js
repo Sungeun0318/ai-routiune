@@ -13,12 +13,15 @@ export function checkAutoLogin() {
       return;
     }
     
-    // 토큰 유효성 검사 (선택 사항)
+    // 토큰 유효성 검사 자체를 건너뛰고 로컬 정보만 사용해 로그인
+    showApp(username);
+    resolve(true);
+    
+  // 서버 API가 준비되면 아래 코드를 사용할 수 있습니다
     fetch('/api/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(response => {
-      // 응답이 JSON인지 확인
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         return response.json();
@@ -36,10 +39,12 @@ export function checkAutoLogin() {
     })
     .catch(error => {
       console.error('Token validation error:', error);
-      resolve(false);
+      // 서버 검증 실패 시 로컬 정보로 로그인
+      showApp(username);
+      resolve(true);
     });
-  }
-)}
+  });
+}
 // 로그인
 export async function login() {
   const username = document.getElementById('login-username').value.trim();

@@ -1,9 +1,7 @@
-// 각 모듈 불러오기
-import { checkAutoLogin, login, register, logout, getAuthToken } from './auth.js';
+import { checkAutoLogin, login, register, logout, getAuthToken, showApp } from './auth.js';
 import { 
   initNavigation, 
   showToast,
-  showApp, 
   hideApp,
   closeAllModals
 } from './ui.js';
@@ -14,14 +12,15 @@ import {
 } from './routine.js';
 import { initCalendar } from './calendar.js';
 
-// DOM이 로드된 후 실행
-document.addEventListener('DOMContentLoaded', () => {
-  // 페이지 초기화
-  initApp();
-});
+// 초기화 상태 관리 변수
+let appInitialized = false;
 
 // 앱 초기화 함수
-function initApp() {
+export function initApp() {
+  // 중복 초기화 방지
+  if (appInitialized) return;
+  appInitialized = true;
+  
   // UI 초기화
   initNavigation();
   
@@ -31,7 +30,7 @@ function initApp() {
   // 이벤트 리스너 설정
   setupEventListeners();
   
-  // 자동 로그인 확인 - 비동기 함수를 Promise 처리로 변경
+  // 자동 로그인 확인
   checkAutoLogin()
     .then(isLoggedIn => {
       if (isLoggedIn) {
@@ -44,8 +43,10 @@ function initApp() {
     });
 }
 
-// DOM 로드 이벤트
-document.addEventListener('DOMContentLoaded', function() {
+// DOM 로드 이벤트 - 단 한 번만 실행되도록 리스너를 직접 정의
+document.addEventListener('DOMContentLoaded', function initAppOnce() {
+  // 리스너를 한 번 실행 후 제거하여 중복 실행 방지
+  document.removeEventListener('DOMContentLoaded', initAppOnce);
   initApp();
 });
 
@@ -111,10 +112,12 @@ export function fetchUserData() {
         headers: { 'Authorization': `Bearer ${getAuthToken()}` }
       })
       .then(response => {
-        if (response.ok) {
+        // 응답이 JSON인지 확인
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
           return response.json();
         }
-        throw new Error('Failed to fetch user data');
+        throw new Error('Invalid response format');
       })
       .then(userData => {
         // 사용자 통계 정보 업데이트
@@ -136,18 +139,12 @@ export function fetchUserData() {
         .then(() => resolve(true))
         .catch(err => {
           console.error('Fetch data error:', err);
-          resolve(false); // 일부 데이터를 가져오지 못해도 전체 프로세스는 성공으로 처리
+          resolve(false);
         });
       })
       .catch(error => {
         console.error('Fetch user data error:', error);
-        // 통계를 가져오지 못해도 루틴과 일정은 시도
-        Promise.all([
-          fetchRecentRoutines().catch(err => console.error('Fetch routines error:', err)),
-          fetchTodaySchedule().catch(err => console.error('Fetch schedule error:', err))
-        ])
-        .then(() => resolve(false))
-        .catch(() => resolve(false));
+        resolve(false);
       });
     } catch (error) {
       console.error('Fetch user data error:', error);
