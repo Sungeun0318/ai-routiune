@@ -823,3 +823,19 @@ input:focus, select:focus, textarea:focus {
   border-radius: 4px;
   border: none;
 }
+
+.logo-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #222;
+}
+
+.logo-title .blue {
+  color: #3B5BFF;
+}
+
+.logo-sub {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  color: #555;
+}
