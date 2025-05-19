@@ -51,9 +51,10 @@ export function initApp() {
 }
 
 // ✅ DOMContentLoaded 시 단 1번 실행
-setFetchUserDataFunction(fetchUserData);
 document.addEventListener('DOMContentLoaded', function initAppOnce() {
   document.removeEventListener('DOMContentLoaded', initAppOnce); // 재등록 방지
+  // fetchUserData 함수 등록 (중복 방지를 위해 한 번만 호출)
+  setFetchUserDataFunction(fetchUserData);
   initApp();
 });
 
@@ -124,6 +125,38 @@ function showRandomQuote() {
 export function fetchUserData() {
   return new Promise((resolve, reject) => {
     try {
+      // 개발 모드를 위한 임시 데이터 (실제 서버 API 호출이 안 될 경우)
+      const DEV_MODE = false; // 서버 API가 준비되면 false로 설정
+      
+      if (DEV_MODE) {
+        console.log('개발 모드: 임시 사용자 데이터 사용');
+        
+        // 임시 데이터로 UI 업데이트
+        const profileRoutineCount = document.getElementById('profile-routine-count');
+        if (profileRoutineCount) {
+          profileRoutineCount.textContent = 5; // 임시 데이터
+        }
+
+        const profileCompletedCount = document.getElementById('profile-completed-count');
+        if (profileCompletedCount) {
+          profileCompletedCount.textContent = 3; // 임시 데이터
+        }
+
+        // 루틴 및 일정 데이터 로드
+        Promise.all([
+          fetchRecentRoutines().catch(err => console.error('Fetch routines error:', err)),
+          fetchTodaySchedule().catch(err => console.error('Fetch schedule error:', err))
+        ])
+        .then(() => resolve(true))
+        .catch(err => {
+          console.error('Fetch data error:', err);
+          resolve(false);
+        });
+        
+        return;
+      }
+
+      // 실제 서버 API 호출
       fetch('/api/user-stats', {
         headers: { 'Authorization': `Bearer ${getAuthToken()}` }
       })
@@ -159,7 +192,14 @@ export function fetchUserData() {
       })
       .catch(error => {
         console.error('Fetch user data error:', error);
-        resolve(false);
+        
+        // 오류 발생 시에도 앱이 작동하도록 루틴과 일정은 불러오기 시도
+        Promise.all([
+          fetchRecentRoutines().catch(err => console.error('Fetch routines error:', err)),
+          fetchTodaySchedule().catch(err => console.error('Fetch schedule error:', err))
+        ])
+        .then(() => resolve(false))
+        .catch(() => resolve(false));
       });
     } catch (error) {
       console.error('Fetch user data error:', error);
@@ -168,7 +208,37 @@ export function fetchUserData() {
   });
 }
 
+// ✅ AI 루틴 생성 요청 함수 (Mistral 모델 사용)
+export async function generateAIRoutine(profileData) {
+  try {
+    const response = await fetch('/api/recommend', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify(profileData)
+    });
+    
+    if (!response.ok) {
+      throw new Error('AI 루틴 생성 중 오류가 발생했습니다');
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    }
+    
+    throw new Error('Invalid response format');
+  } catch (error) {
+    console.error('AI Routine generation error:', error);
+    // 오류 발생 시 기본 데이터 반환하거나 예외 그대로 전파
+    throw error;
+  }
+}
+
 // ✅ 외부에서 호출 가능한 함수 등록 (캘린더 초기화 등)
 window.initCalendar = initCalendar;
 window.showToast = showToast;
 window.fetchUserData = fetchUserData;
+window.generateAIRoutine = generateAIRoutine; // AI 루틴 생성 함수도 window에 등록
