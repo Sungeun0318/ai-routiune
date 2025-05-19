@@ -13,6 +13,7 @@ import {
   fetchTodaySchedule 
 } from './routine.js';
 import { initCalendar } from './calendar.js';
+import { quotes } from './quotes.js'; // ✅ 명언 import
 
 // ✅ 앱 초기화 여부 플래그
 let appInitialized = false;
@@ -44,6 +45,9 @@ export function initApp() {
     .catch(error => {
       console.error('Auto-login error:', error);
     });
+
+  // 6. 오늘의 명언 출력
+  showRandomQuote();
 }
 
 // ✅ DOMContentLoaded 시 단 1번 실행
@@ -106,6 +110,14 @@ function setupEventListeners() {
       closeAllModals();
     }
   });
+}
+
+// ✅ 오늘의 명언 랜덤 출력 함수
+function showRandomQuote() {
+  const quoteText = document.getElementById('quote-text');
+  if (!quoteText) return;
+  const random = Math.floor(Math.random() * quotes.length);
+  quoteText.textContent = quotes[random];
 }
 
 // ✅ 사용자 정보 불러오기 및 UI 반영
