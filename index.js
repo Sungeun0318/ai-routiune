@@ -12,6 +12,7 @@ const apiRoutes = require('./routes/api');
 const app = express();
 
 mongoose.connect(process.env.MONGODB_URI, {
+  
   useNewUrlParser: true,
   useUnifiedTopology: true
 })

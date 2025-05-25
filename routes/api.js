@@ -8,6 +8,13 @@ const requireLogin = (req, res, next) => {
   next();
 };
 
+// 공휴일 리스트
+const holidays = ['2025-06-06', '2025-08-15'];
+function isHoliday(date) {
+  const ymd = date.toISOString().split('T')[0];
+  return holidays.includes(ymd);
+}
+
 async function getRecommendation(profile) {
   try {
     if (!process.env.GEMINI_API_KEY) {
@@ -101,15 +108,7 @@ function generateFallbackRecommendation(profile) {
   const totalHours = profile.routineItems?.reduce((sum, item) => sum + parseFloat(item.dailyHours || 2), 0) || 6;
   const focusTime = profile.routineItems?.[0]?.focusTime || '오전';
   const duration = profile.duration || 7;
-  return `🎯 ${duration}일 개인 맞춤 학습 루틴
-
-📌 목표: 매일 ${totalHours}시간 꾸준한 학습
-⏰ 추천 집중 시간대: ${focusTime}
-📘 학습 과목: ${subjects.join(', ')}
-
-✨ 오전엔 집중 학습, 오후엔 복습과 실습을 추천드려요.
-✅ 포모도로 기법 (25분 집중 + 5분 휴식)을 활용해보세요!
-💡 하루 3개 이하 과목으로 나누면 더 효율적입니다.`;
+  return `🎯 ${duration}일 개인 맞춤 학습 루틴\n\n📌 목표: 매일 ${totalHours}시간 꾸준한 학습\n⏰ 추천 집중 시간대: ${focusTime}\n📘 학습 과목: ${subjects.join(', ')}\n\n✨ 오전엔 집중 학습, 오후엔 복습과 실습을 추천드려요.\n✅ 포모도로 기법 (25분 집중 + 5분 휴식)을 활용해보세요!\n💡 하루 3개 이하 과목으로 나누면 더 효율적입니다.`;
 }
 
 router.post('/recommend', async (req, res) => {
@@ -130,18 +129,34 @@ function generateEnhancedDailyRoutines(profile) {
   const startDate = new Date(profile.startDate || new Date());
   const duration = parseInt(profile.duration || 7);
   const dailyRoutines = [];
-  for (let day = 0; day < duration; day++) {
+  let addedDays = 0;
+  let dayOffset = 0;
+
+  while (addedDays < duration) {
     const date = new Date(startDate);
-    date.setDate(startDate.getDate() + day);
-    const formattedDate = date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+    date.setDate(startDate.getDate() + dayOffset);
+
+    if (profile.excludeHolidays && isHoliday(date)) {
+      dayOffset++;
+      continue;
+    }
+
+    const formattedDate = new Intl.DateTimeFormat('ko', {
+      month: 'long', day: 'numeric', weekday: 'long'
+    }).format(date);
+
+    const schedules = generateSmartDaySchedules(addedDays, profile, date);
     let content = `${formattedDate} 학습 계획:\n`;
-    const schedules = generateSmartDaySchedules(day, profile, date);
     schedules.forEach(s => {
       content += `\n${s.startTime}-${s.endTime}: ${s.title}`;
       if (s.notes) content += `\n  💡 ${s.notes}`;
     });
-    dailyRoutines.push({ day: day + 1, date: formattedDate, content, schedules });
+
+    dailyRoutines.push({ day: addedDays + 1, date: formattedDate, content, schedules });
+    addedDays++;
+    dayOffset++;
   }
+
   return dailyRoutines;
 }
 
@@ -153,11 +168,10 @@ function generateSmartDaySchedules(day, profile, date) {
     { subject: '프로그래밍', dailyHours: 2.5, focusTime: 'evening', priority: 'high' }
   ];
 
-  const dayOfWeek = date.getDay(); // 0=일요일, 6=토요일
+  const dayOfWeek = date.getDay();
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
   if (dayOfWeek === 6) {
-    // 토요일: 오전/오후 루틴 명시
     schedules.push(
       {
         startTime: '09:00',
@@ -173,7 +187,6 @@ function generateSmartDaySchedules(day, profile, date) {
       }
     );
   } else if (dayOfWeek === 0) {
-    // 일요일: 휴식 + 루틴 점검
     schedules.push(
       {
         startTime: '10:00',
@@ -189,7 +202,6 @@ function generateSmartDaySchedules(day, profile, date) {
       }
     );
   } else {
-    // 평일 기존 로직 유지
     const timeSlots = ['07:00', '09:00', '13:00', '15:00', '18:00', '20:00'];
     const focusTimeMapping = {
       'morning': 0, 'forenoon': 1, 'afternoon': 2,
@@ -222,13 +234,11 @@ function generateSmartDaySchedules(day, profile, date) {
         priority: item.priority
       });
     });
-
     schedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
   }
 
   return schedules;
 }
-
 
 function getActivityByWeek(subject, dow, weekNum) {
   const act = {

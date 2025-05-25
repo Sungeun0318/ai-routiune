@@ -172,9 +172,10 @@ function saveRoutineItem() {
   const dailyHours = parseFloat(document.getElementById('daily-hours').value);
   const focusTime = document.getElementById('focus-time').value;
   const unavailableTimes = document.getElementById('unavailable-times').value.trim();
+  const level = document.getElementById('routine-level').value;      //류찬형
   const priority = document.getElementById('priority').value;
   const notes = document.getElementById('notes').value.trim();
-  
+  const excludeHolidays = document.getElementById('exclude-holidays').checked;
   // 요일 선택 확인
   const selectedDays = [];
   document.querySelectorAll('.day-checkbox input:checked').forEach(checkbox => {
@@ -193,10 +194,12 @@ function saveRoutineItem() {
     unavailableTimes,
     priority,
     selectedDays,
-    notes
+    notes,
+    excludeHolidays,
+    level   //류찬형
   };
   
-  if (currentEditingItemIndex !== null) {
+  if (currentEditingItemIndex !== null) { 
     currentRoutineItems[currentEditingItemIndex] = routineItem;
   } else {
     currentRoutineItems.push(routineItem);
@@ -255,6 +258,7 @@ function editRoutineItem(index) {
   document.getElementById('subject').value = item.subject;
   document.getElementById('daily-hours').value = item.dailyHours;
   document.getElementById('focus-time').value = item.focusTime;
+  document.getElementById('routine-level').value = item.level || '중급';            //류찬형
   document.getElementById('unavailable-times').value = item.unavailableTimes || '';
   document.getElementById('priority').value = item.priority;
   document.getElementById('notes').value = item.notes || '';
