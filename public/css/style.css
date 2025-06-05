@@ -839,3 +839,332 @@ input:focus, select:focus, textarea:focus {
   font-size: 0.95rem;
   color: #555;
 }
+
+/* 오늘의 일정 업그레이드용 스타일 */
+.today-schedule-section {
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+}
+
+.schedule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-item .time {
+  font-weight: bold;
+  color: #444;
+  width: 60px;
+}
+
+.schedule-item .task {
+  flex-grow: 1;
+}
+
+.schedule-item progress {
+  width: 120px;
+  height: 10px;
+  border-radius: 5px;
+}
+/* 루틴 항목 모달 추가 스타일 */
+
+/* 라디오 버튼 그룹 */
+.subject-type-selector,
+.time-input-selector {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.radio-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.radio-group input[type="radio"] {
+  width: auto;
+  margin: 0;
+}
+
+.radio-group label {
+  margin: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+/* 시간 입력 방식 */
+.time-input-method {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-unit {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+/* 슬라이더 스타일 */
+#time-slider-input {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+#hours-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-light);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none; /* 이 줄을 추가하세요 */
+}
+
+#hours-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none; /* 이 줄을 추가 */
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#hours-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-value {
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+/* 요일 선택 */
+.days-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.day-checkbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.day-checkbox:hover {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.day-checkbox input[type="checkbox"] {
+  width: auto;
+  margin: 0 0 0.25rem 0;
+}
+
+.day-checkbox label {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.day-checkbox input[type="checkbox"]:checked + label {
+  color: var(--primary);
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked) {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.select-all-days {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* 집중 시간대 컨테이너 */
+.focus-time-container,
+.unavailable-time-container {
+  margin-top: 0.5rem;
+}
+
+.focus-time-note,
+.unavailable-time-note {
+  padding: 1rem;
+  background-color: var(--background);
+  border-radius: var(--radius);
+  color: var(--text-light);
+  font-size: 0.9rem;
+  text-align: center;
+  border: 2px dashed var(--border);
+}
+
+.day-time-setting {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background-color: var(--background);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--primary);
+}
+
+.day-label {
+  min-width: 60px;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.day-time-setting select,
+.day-time-setting input {
+  flex: 1;
+  margin: 0;
+}
+
+.time-range-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.time-separator {
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+/* 메모 텍스트에어리어 개선 */
+#notes {
+  min-height: 100px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+/* 반응형 개선 */
+@media (max-width: 768px) {
+  .days-checkboxes {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+  }
+  
+  .day-checkbox {
+    padding: 0.25rem;
+    font-size: 0.8rem;
+  }
+  
+  .subject-type-selector,
+  .time-input-selector {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .select-all-days {
+    flex-direction: column;
+  }
+  
+  .day-time-setting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+}
+
+/* 오늘의 일정 개선된 스타일 */
+.schedule-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+.schedule-item input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.schedule-time {
+  font-weight: bold;
+  color: var(--text);
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.schedule-task {
+  flex: 1;
+}
+
+.schedule-task .title {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.schedule-task progress {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+}
+
+.schedule-task progress::-webkit-progress-bar {
+  background-color: #eee;
+  border-radius: 5px;
+}
+
+.schedule-task progress::-webkit-progress-value {
+  background-color: var(--success);
+  border-radius: 5px;
+}

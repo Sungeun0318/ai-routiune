@@ -78,9 +78,18 @@ function setupEventListeners() {
     logout();
   });
 
-  document.querySelectorAll('.close-modal')?.forEach(btn => {
-    btn.addEventListener('click', () => {
-      closeAllModals();
+  // ✅ 캘린더 탭 클릭 시 캘린더 초기화 (중복 호출 방지)
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.getAttribute('data-page');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(`${page}-page`)?.classList.add('active');
+
+      if (page === 'calendar') {
+        if (!window.calendar) {
+          window.initCalendar(); // 전역에 등록된 initCalendar 사용
+        }
+      }
     });
   });
 

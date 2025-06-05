@@ -1,6 +1,13 @@
-// 캘린더 관련 기능들
-import { getAuthToken } from './auth.js';
-import { showToast, showModal, hideModal } from './ui.js';
+// ❌ import 하지 말고
+// ✅ 이렇게 사용
+const Calendar = FullCalendar.Calendar;
+const dayGridPlugin = FullCalendar.dayGridPlugin;
+const timeGridPlugin = FullCalendar.timeGridPlugin;
+const interactionPlugin = FullCalendar.interactionPlugin;
+const listPlugin = FullCalendar.listPlugin;
+
+
+
 
 // 전역 변수
 let calendar;
@@ -20,9 +27,10 @@ export function initCalendar() {
   }
   
   // FullCalendar v6 문법으로 초기화
-  calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: 'dayGridMonth',
-    locale: 'ko', // 한국어 로케일
+calendar = new Calendar(calendarEl, {
+  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
+  initialView: 'dayGridMonth',
+  locale: 'ko',
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',

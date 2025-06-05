@@ -125,6 +125,25 @@ router.post('/recommend', async (req, res) => {
   }
 });
 
+router.get('/routines/recent', (req, res) => {
+  res.json({
+    routines: [
+      {
+        id: 'r1',
+        title: '수능 대비 루틴',
+        subjects: ['수학', '영어', '과학'],
+        createdAt: '2025-06-01'
+      },
+      {
+        id: 'r2',
+        title: '기말고사 집중 루틴',
+        subjects: ['프로그래밍', '자료구조'],
+        createdAt: '2025-06-04'
+      }
+    ]
+  });
+});
+
 function generateEnhancedDailyRoutines(profile) {
   const startDate = new Date(profile.startDate || new Date());
   const duration = parseInt(profile.duration || 7);
@@ -258,5 +277,16 @@ function getStudyTip(subject, activity, isWeekend) {
   };
   return (tips[subject] || `${activity}을(를) 집중해서 연습해보세요.`) + (isWeekend ? ' 주말에는 부담 없이 진행하세요.' : '');
 }
+
+
+
+router.get('/user-stats', (req, res) => {
+  res.json({
+    username: 'jaekong0521',
+    routineCount: 0,
+    completedCount: 0,
+    joinDate: '2023년 6월 1일'
+  });
+});
 
 module.exports = router;

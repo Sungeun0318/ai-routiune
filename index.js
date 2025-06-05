@@ -8,6 +8,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const apiRoutes = require('./routes/api');
+const scheduleRouter = require('./routes/schedule'); // ✅ 추가
 
 const app = express();
 
@@ -40,12 +41,14 @@ app.use(session({
 
 app.use('/api', authRoutes);  // ✅ 이걸로 수정
 app.use('/api', apiRoutes);
+app.use('/api/schedule', scheduleRouter); // ✅ 추가
 
 
-// ⛔ 이게 맨 아래에 있어야 합니다
-app.get('*', (req, res) => {
+// ✅ API 경로가 아닌 경우에만 index.html 반환
+app.get(/^\/(?!api).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 
 // 5. 서버 실행
