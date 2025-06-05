@@ -1,7 +1,7 @@
 import { showToast, hideApp } from './ui.js';
 
 // 개발 모드 설정 - 서버 API가 준비되면 false로 변경
-const DEV_MODE = false;
+const DEV_MODE = true; // true로 변경하여 개발 모드 활성화
 
 // 사용자 데이터 가져오기 함수를 위한 변수 선언
 let fetchUserDataFunction = null;
@@ -18,12 +18,14 @@ export function checkAutoLogin() {
     const username = localStorage.getItem('username');
     
     if (!token || !username) {
+      console.log('No stored credentials found');
       resolve(false);
       return;
     }
     
     if (DEV_MODE) {
       // 개발 모드: 로컬 정보만 사용
+      console.log('Development mode: auto-login with stored credentials');
       showApp(username);
       resolve(true);
       return;
@@ -71,7 +73,9 @@ export async function login() {
   
   if (DEV_MODE) {
     // 개발 모드: 로컬에서 처리
+    console.log('Development mode: login attempt for', username);
     const authToken = 'dev-token-' + Date.now();
+    
     if (rememberMe) {
       localStorage.setItem('authToken', authToken);
       localStorage.setItem('username', username);
@@ -81,9 +85,16 @@ export async function login() {
     }
     
     showApp(username);
+    
+    // 사용자 데이터 로드
     if (fetchUserDataFunction) {
-      fetchUserDataFunction();
+      try {
+        await fetchUserDataFunction();
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
     }
+    
     showToast('성공', '로그인되었습니다.', 'success');
     return;
   }
@@ -111,7 +122,7 @@ export async function login() {
       
       showApp(username);
       if (fetchUserDataFunction) {
-        fetchUserDataFunction();
+        await fetchUserDataFunction();
       }
       showToast('성공', '로그인되었습니다.', 'success');
     } else {
@@ -141,14 +152,21 @@ export async function register() {
   
   if (DEV_MODE) {
     // 개발 모드: 로컬에서 처리
+    console.log('Development mode: registration for', username);
     const authToken = 'dev-token-' + Date.now();
     localStorage.setItem('authToken', authToken);
     localStorage.setItem('username', username);
     
     showApp(username);
+    
     if (fetchUserDataFunction) {
-      fetchUserDataFunction();
+      try {
+        await fetchUserDataFunction();
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
     }
+    
     showToast('성공', '회원가입이 완료되었습니다.', 'success');
     return;
   }
@@ -169,7 +187,7 @@ export async function register() {
       
       showApp(username);
       if (fetchUserDataFunction) {
-        fetchUserDataFunction();
+        await fetchUserDataFunction();
       }
       showToast('성공', '회원가입이 완료되었습니다.', 'success');
     } else {
@@ -185,6 +203,7 @@ export async function register() {
 export function logout(showNotification = true) {
   if (DEV_MODE) {
     // 개발 모드: 로컬에서 처리
+    console.log('Development mode: logout');
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     sessionStorage.removeItem('authToken');
@@ -232,8 +251,11 @@ export function logout(showNotification = true) {
 
 // 앱 UI 표시
 export function showApp(username) {
-  document.getElementById('login-container').style.display = 'none';
-  document.getElementById('app-container').style.display = 'flex';
+  const loginContainer = document.getElementById('login-container');
+  const appContainer = document.getElementById('app-container');
+  
+  if (loginContainer) loginContainer.style.display = 'none';
+  if (appContainer) appContainer.style.display = 'flex';
   
   // 사용자 이름 표시
   const usernameDisplay = document.getElementById('username-display');
@@ -245,6 +267,8 @@ export function showApp(username) {
   if (profileUsername) {
     profileUsername.textContent = username;
   }
+  
+  console.log('App shown for user:', username);
 }
 
 // 인증 토큰 가져오기
