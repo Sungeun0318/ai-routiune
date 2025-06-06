@@ -74,10 +74,10 @@
     <!-- 사이드바 -->
     <aside class="sidebar">
       <div class="logo-container">
-        <!-- 로고는 나중에 추가 -->
-        <div class="logo-placeholder"></div>
-        <h2>루틴 플래너</h2>
-      </div>
+  <img src="plan.png" alt="로고" class="logo-image" />
+</div>
+
+
       
       <nav class="nav-menu">
         <ul>
@@ -117,7 +117,7 @@
       <!-- 상단 헤더 -->
       <header class="main-header">
         <div class="user-info">
-          <span id="username-display">사용자</span>님, 환영합니다!
+          <span id="nickname-display">성은아나자살하고싶어</span>님, 환영합니다! <!-- 류찬형 -->
         </div>
         <button id="create-routine-btn" class="btn btn-primary">
           <i class="ri-add-line"></i>
@@ -341,12 +341,24 @@
           </div>
           <div class="form-group">
             <label for="routine-duration">기간</label>
-            <select id="routine-duration">
-              <option value="7">1주일</option>
-              <option value="14">2주일</option>
-              <option value="21">3주일</option>
-              <option value="30">1개월</option>
-            </select>
+          <select id="routine-duration">
+            <option disabled selected hidden>기간 선택</option>
+            <option value="1">1일</option>
+            <option value="2">2일</option>
+            <option value="3">3일</option>
+            <option value="4">4일</option>
+            <option value="5">5일</option>
+            <option value="6">6일</option>
+            <option value="7" selected>7일</option> <!-- 기본값 7일로 설정했다 -->
+            <option value="8">8일</option> <!-- 류찬형 -->
+            <option value="9">9일</option>
+            <option value="10">10일</option>
+            <option value="11">11일</option>
+            <option value="12">12일</option>
+            <option value="13">13일</option>
+            <option value="14">14일</option>
+          </select>
+
           </div>
         </div>
       </div>

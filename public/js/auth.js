@@ -52,7 +52,8 @@ export function checkAutoLogin() {
     .then(data => {
       console.log('✅ 세션 검증 결과:', data);
       if (data.ok && data.user) {
-        showApp(data.user.username);
+        const displayName = data.user.displayName || data.user.nickname || data.user.username;
+        showApp(displayName); //류찬형
         resolve(true);
       } else {
         console.log('❌ 세션 무효, 로그아웃 처리');
@@ -122,14 +123,30 @@ export async function login() {
     console.log('📄 로그인 응답 데이터:', data);
     
     if (response.ok && data.ok) {
-      console.log('✅ 로그인 성공');
-      
-      showApp(data.user?.username || username);
-      if (fetchUserDataFunction) {
-        await fetchUserDataFunction();
-      }
-      showToast('성공', '로그인되었습니다.', 'success');
+  console.log('✅ 로그인 성공');
+
+  // 🔐 토큰 저장 추가
+  const token = data.token;
+  if (token) {
+    if (rememberMe) {
+      localStorage.setItem('authToken', token);
     } else {
+      sessionStorage.setItem('authToken', token);
+    }
+  }
+
+  showApp({
+  username: data.user?.username || username,
+  nickname: data.user?.nickname || data.user?.username || username
+}); //류찬형
+
+
+  if (fetchUserDataFunction) {
+    await fetchUserDataFunction();
+  }
+
+  showToast('성공', '로그인되었습니다.', 'success');
+}else {
       console.log('❌ 로그인 실패:', data.message);
       showToast('오류', data.message || '아이디 또는 비밀번호가 일치하지 않습니다.', 'error');
     }
@@ -194,7 +211,12 @@ export async function register() {
     if (response.ok && data.ok) {
       console.log('✅ 회원가입 성공');
       
-      showApp(data.user?.username || username);
+      showApp({
+  username: data.user.username,
+  nickname: data.user.nickname
+});
+ //류찬형
+
       if (fetchUserDataFunction) {
         await fetchUserDataFunction();
       }
@@ -263,7 +285,7 @@ export function logout(showNotification = true) {
 }
 
 // 앱 UI 표시
-export function showApp(username) {
+export function showApp(username, nickname) {
   const loginContainer = document.getElementById('login-container');
   const appContainer = document.getElementById('app-container');
   
@@ -271,21 +293,22 @@ export function showApp(username) {
   if (appContainer) appContainer.style.display = 'flex';
   
   // 사용자 이름 표시
-  const usernameDisplay = document.getElementById('username-display');
-  if (usernameDisplay) {
-    usernameDisplay.textContent = username;
-  }
-  
-  const profileUsername = document.getElementById('profile-username');
-  if (profileUsername) {
-    profileUsername.textContent = username;
-  }
-  
+  const displayName = nickname || username;
+
+const usernameDisplay = document.getElementById('username-display');
+if (usernameDisplay) {
+  usernameDisplay.textContent = displayName;
+}
+
+const profileUsername = document.getElementById('profile-username');
+if (profileUsername) {
+  profileUsername.textContent = displayName;
+}
+
   console.log('✅ 앱 UI 표시 완료:', username);
 }
 
 // 인증 토큰 가져오기 (세션 기반에서는 사용하지 않음)
 export function getAuthToken() {
-  // 세션 기반 인증에서는 토큰이 필요 없음
-  return null;
+  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
 }

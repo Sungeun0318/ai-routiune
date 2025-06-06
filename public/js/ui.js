@@ -187,11 +187,21 @@ function updateProfileDisplay(profileData) {
 }
 
 // 앱 화면 표시
-export function showApp(username) {
-  console.log('Showing app for user:', username);
+export function showApp({username, nickname}) {
+  console.log('Showing app for user:', username, nickname);
   
   const loginContainer = document.getElementById('login-container');
   const appContainer = document.getElementById('app-container');
+  
+
+  const nicknameSpan = document.getElementById('nickname-display');
+const displayName = nickname || username;
+console.log('💬 표시될 사용자 이름:', displayName); // 디버깅 로그
+
+if (nicknameSpan) {
+  nicknameSpan.textContent = `${displayName}님`;  
+}
+
   
   if (loginContainer) {
     loginContainer.style.display = 'none';
@@ -202,16 +212,10 @@ export function showApp(username) {
     appContainer.style.display = 'flex';
     console.log('App container shown');
   }
-  
-  // 사용자 이름 표시
-  const usernameDisplay = document.getElementById('username-display');
-  if (usernameDisplay) {
-    usernameDisplay.textContent = username;
-  }
-  
+
   const profileUsername = document.getElementById('profile-username');
   if (profileUsername) {
-    profileUsername.textContent = username;
+    profileUsername.textContent = nickname || username;
   }
   
   // 홈 페이지가 기본으로 표시되도록 확인
@@ -234,6 +238,7 @@ export function showApp(username) {
     homePage.classList.add('active');
     
     console.log('Home page set as default');
+    fetchRecentRoutines(); // 홈 진입 시 루틴 목록 최신화
   }
 }
 
@@ -411,35 +416,26 @@ export function renderRecentRoutines(routines, mode = 'card') {
     return;
   }
 
-  routines.forEach(routine => {
+  routines.slice(0, 3).forEach(routine => {
+    const title = routine.title || '제목 없음';
+    const subjects = (routine.subjects || []).join(', ') || '미지정';
+    const date = routine.createdAt 
+      ? new Date(routine.createdAt).toISOString().split('T')[0] 
+      : '날짜 없음';
+
     const el = document.createElement('div');
-    el.className = mode === 'item' ? 'routine-item' : 'routine-card';
+    el.className = 'routine-card';
 
-    if (mode === 'item') {
-      el.innerHTML = `
-        <div class="routine-item-content">
-          <h3>${routine.title || '제목 없음'}</h3>
-          <p>${routine.subjects ? routine.subjects.join(', ') : routine.createdAt}</p>
-        </div>
-        <i class="ri-arrow-right-s-line"></i>
-      `;
-
-      el.addEventListener('click', () => {
-        if (routine.id) {
-          window.location.hash = `routine/${routine.id}`;
-        }
-      });
-    } else {
-      el.innerHTML = `
-        <h3>${routine.title}</h3>
-        <p>과목: ${routine.subjects.join(', ')}</p>
-        <p>생성일: ${routine.createdAt}</p>
-      `;
-    }
+    el.innerHTML = `
+      <h3>${title}</h3>
+      <p>과목: ${subjects}</p>
+      <p>생성일: ${date}</p>
+    `;
 
     container.appendChild(el);
   });
 }
+
 
 export function renderTodaySchedule(schedule, containerId = 'today-schedule-list') {
   console.log('Rendering today schedule:', schedule.length);
@@ -578,3 +574,28 @@ export function handleProfileUpdate(formData, onSuccess) {
 // 전역 함수로 노출 (다른 모듈에서 접근 가능하도록)
 window.showModal = showModal;
 window.hideModal = hideModal;
+
+// ... 위의 코드들 (window.hideModal 까지 끝난 후)
+
+export async function fetchRecentRoutines() {
+  try {
+    const response = await fetch('/api/routines/recent', {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`루틴 목록 가져오기 실패: ${response.status}`);
+    }
+
+    const routines = await response.json();
+    console.log('✅ 받아온 루틴 목록:', routines);
+
+    renderRecentRoutines(routines);
+  } catch (error) {
+    console.error('❌ 최근 루틴 불러오기 실패:', error);
+    showToast('오류', '최근 루틴을 불러오는 중 문제가 발생했습니다.', 'error');
+  }
+}

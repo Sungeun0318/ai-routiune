@@ -257,6 +257,18 @@ input:focus, select:focus, textarea:focus {
   border-bottom: 1px solid var(--border);
 }
 
+/* ⬇ 여기에 추가 */
+.logo-container img.logo-image {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.logo-text .text-blue {
+  color: #3b82f6;
+}
+
 .logo-placeholder {
   width: 40px;
   height: 40px;

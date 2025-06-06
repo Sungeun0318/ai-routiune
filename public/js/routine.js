@@ -1,6 +1,6 @@
 // 루틴 관련 기능들 - 백엔드 연동 버전
 import { getAuthToken } from './auth.js';
-import { showToast, showModal, hideModal, renderRecentRoutines, renderTodaySchedule } from './ui.js';
+import { showToast, showModal, hideModal, renderTodaySchedule } from './ui.js';
 
 // 전역 상태 변수
 let currentRoutineItems = [];
@@ -904,4 +904,44 @@ async function saveRoutineToDatabase() {
     console.error('❌ Error saving routine to database:', error);
     throw error;
   }
+}
+
+// ✅ 최근 생성된 루틴 렌더링 함수
+export function renderRecentRoutines(routines) {
+  const container = document.getElementById('recent-routines-list');
+  if (!container) {
+    console.error('Recent routines container not found');
+    return;
+  }
+
+  container.innerHTML = '';
+
+  if (!routines || routines.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="ri-calendar-todo-line"></i>
+        <p>생성된 루틴이 없습니다.<br>새 루틴을 생성해보세요!</p>
+      </div>
+    `;
+    return;
+  }
+
+  routines.slice(0, 3).forEach(routine => {
+    const title = routine.title || '제목 없음';
+    const subjects = (routine.subjects || []).join(', ') || '미지정';
+    const date = routine.createdAt 
+      ? new Date(routine.createdAt).toISOString().split('T')[0] 
+      : '날짜 없음';
+
+    const el = document.createElement('div');
+    el.className = 'routine-card';
+
+    el.innerHTML = `
+      <h3>${title}</h3>
+      <p>과목: ${subjects}</p>
+      <p>생성일: ${date}</p>
+    `;
+
+    container.appendChild(el);
+  });
 }

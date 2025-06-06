@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const Recommendation = require('../models/Recommendation');
+const Routine = require('../models/Routine'); // ← 루틴 모델 불러오기
 
 const requireLogin = (req, res, next) => {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
@@ -125,24 +126,19 @@ router.post('/recommend', async (req, res) => {
   }
 });
 
-router.get('/routines/recent', (req, res) => {
-  res.json({
-    routines: [
-      {
-        id: 'r1',
-        title: '수능 대비 루틴',
-        subjects: ['수학', '영어', '과학'],
-        createdAt: '2025-06-01'
-      },
-      {
-        id: 'r2',
-        title: '기말고사 집중 루틴',
-        subjects: ['프로그래밍', '자료구조'],
-        createdAt: '2025-06-04'
-      }
-    ]
-  });
+router.get('/routines/recent', async (req, res) => {
+  try {
+    const routines = await Routine.find({ userId: req.session.userId })
+      .sort({ createdAt: -1 }) // 최근 생성 순
+      .limit(3); // 3개만 가져옴
+
+    res.json({ routines });
+  } catch (err) {
+    console.error('최근 루틴 조회 실패:', err);
+    res.status(500).json({ error: '루틴 불러오기 실패' });
+  }
 });
+
 
 function generateEnhancedDailyRoutines(profile) {
   const startDate = new Date(profile.startDate || new Date());
