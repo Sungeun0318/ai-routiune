@@ -14,34 +14,35 @@ export function setFetchUserDataFunction(fn) {
 // 자동 로그인 확인
 export function checkAutoLogin() {
   return new Promise((resolve) => {
-    const token = localStorage.getItem('authToken');
-    const username = localStorage.getItem('username');
-    
-    console.log('🔍 자동 로그인 확인 중...', { token: !!token, username });
-    
-    if (!token || !username) {
-      console.log('❌ 저장된 인증 정보 없음');
-      resolve(false);
-      return;
-    }
+    console.log('🔍 자동 로그인 확인 중...');
     
     if (DEV_MODE) {
+      const token = localStorage.getItem('authToken');
+      const username = localStorage.getItem('username');
+      
+      if (!token || !username) {
+        console.log('❌ 저장된 인증 정보 없음');
+        resolve(false);
+        return;
+      }
+      
       console.log('🔧 개발 모드: 로컬 정보로 자동 로그인');
       showApp(username);
       resolve(true);
       return;
     }
     
-    // 프로덕션 모드: 서버 API 호출
-    console.log('🌐 서버에 토큰 검증 요청...');
+    // 프로덕션 모드: 세션 기반 인증 확인
+    console.log('🌐 서버에 세션 검증 요청...');
     fetch('/api/me', {
+      method: 'GET',
+      credentials: 'include',
       headers: { 
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     })
     .then(response => {
-      console.log('🔍 토큰 검증 응답:', response.status);
+      console.log('🔍 세션 검증 응답:', response.status);
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         return response.json();
@@ -49,18 +50,18 @@ export function checkAutoLogin() {
       throw new Error('Invalid response format');
     })
     .then(data => {
-      console.log('✅ 토큰 검증 결과:', data);
+      console.log('✅ 세션 검증 결과:', data);
       if (data.ok && data.user) {
-        showApp(data.user.username || username);
+        showApp(data.user.username);
         resolve(true);
       } else {
-        console.log('❌ 토큰 무효, 로그아웃 처리');
+        console.log('❌ 세션 무효, 로그아웃 처리');
         logout(false);
         resolve(false);
       }
     })
     .catch(error => {
-      console.error('❌ 토큰 검증 오류:', error);
+      console.error('❌ 세션 검증 오류:', error);
       logout(false);
       resolve(false);
     });
@@ -111,6 +112,7 @@ export async function login() {
     console.log('🌐 서버에 로그인 요청...');
     const response = await fetch('/api/login', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
@@ -120,18 +122,9 @@ export async function login() {
     console.log('📄 로그인 응답 데이터:', data);
     
     if (response.ok && data.ok) {
-      const authToken = data.token || 'session-token';
-      console.log('✅ 로그인 성공, 토큰 저장');
+      console.log('✅ 로그인 성공');
       
-      if (rememberMe) {
-        localStorage.setItem('authToken', authToken);
-        localStorage.setItem('username', username);
-      } else {
-        sessionStorage.setItem('authToken', authToken);
-        sessionStorage.setItem('username', username);
-      }
-      
-      showApp(username);
+      showApp(data.user?.username || username);
       if (fetchUserDataFunction) {
         await fetchUserDataFunction();
       }
@@ -189,6 +182,7 @@ export async function register() {
     console.log('🌐 서버에 회원가입 요청...');
     const response = await fetch('/api/register', {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
@@ -199,10 +193,8 @@ export async function register() {
     
     if (response.ok && data.ok) {
       console.log('✅ 회원가입 성공');
-      localStorage.setItem('authToken', data.token || 'session-token');
-      localStorage.setItem('username', username);
       
-      showApp(username);
+      showApp(data.user?.username || username);
       if (fetchUserDataFunction) {
         await fetchUserDataFunction();
       }
@@ -244,17 +236,18 @@ export function logout(showNotification = true) {
   // 프로덕션 모드: 서버 API 호출
   fetch('/api/logout', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(response => {
+    console.log('🔍 로그아웃 응답:', response.status);
+    return response.json();
   })
   .catch(error => {
     console.error('❌ 로그아웃 API 오류:', error);
   })
   .finally(() => {
-    console.log('🗑️ 토큰 및 세션 정리');
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('username');
-    sessionStorage.removeItem('authToken');
-    sessionStorage.removeItem('username');
+    console.log('🗑️ 세션 정리');
     
     hideApp();
     
@@ -291,9 +284,8 @@ export function showApp(username) {
   console.log('✅ 앱 UI 표시 완료:', username);
 }
 
-// 인증 토큰 가져오기
+// 인증 토큰 가져오기 (세션 기반에서는 사용하지 않음)
 export function getAuthToken() {
-  const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-  console.log('🔑 토큰 조회:', !!token);
-  return token;
+  // 세션 기반 인증에서는 토큰이 필요 없음
+  return null;
 }

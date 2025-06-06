@@ -155,15 +155,16 @@ function showRandomQuote() {
   quoteText.textContent = quotes[randomIndex];
 }
 
-// ✅ 사용자 데이터 불러오기
+// ✅ 사용자 데이터 불러오기 (세션 기반으로 수정)
 export function fetchUserData() {
   return new Promise((resolve, reject) => {
     try {
       console.log('📊 사용자 데이터 로드 중...');
       
       fetch('/api/user-stats', {
+        method: 'GET',
+        credentials: 'include',
         headers: { 
-          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         }
       })
@@ -202,14 +203,14 @@ export function fetchUserData() {
   });
 }
 
-// ✅ AI 루틴 생성 요청 함수
+// ✅ AI 루틴 생성 요청 함수 (세션 기반으로 수정)
 export async function generateAIRoutine(profileData) {
   try {
     const response = await fetch('/api/recommend', {
       method: 'POST',
+      credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(profileData)
     });
