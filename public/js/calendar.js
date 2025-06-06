@@ -27,20 +27,25 @@ export function initCalendar() {
   }
   
   // FullCalendar v6 문법으로 초기화
-calendar = new Calendar(calendarEl, {
+const calendarInstance = new Calendar(calendarEl, {
   plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin],
   initialView: 'dayGridMonth',
   locale: 'ko',
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-    },
-    height: 'auto',
+  headerToolbar: {
+    left: 'prev,next today',
+    center: 'title',
+    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+  },
+  height: 'auto',
     
     // 이벤트 클릭 처리
     eventClick: function(info) {
-      showEventDetails(info.event);
+      console.log('Event Clicked:', info.event); // ← 확인용
+  if (info.event) {
+    showEventDetails(info.event);
+  } else {
+    console.warn('클릭한 이벤트 정보가 없습니다.');
+  }
     },
     
     // 시간 포맷
@@ -73,17 +78,27 @@ calendar = new Calendar(calendarEl, {
     },
     
     // 이벤트 렌더링 후 처리
-    eventDidMount: function(info) {
-      // 완료된 이벤트 스타일 변경
-      if (info.event.extendedProps.completed) {
-        info.el.style.opacity = '0.6';
-        info.el.style.textDecoration = 'line-through';
-      }
-    }
+eventDidMount: function(info) {
+  try {
+    const name = info.event.title; // ✅ 그냥 title만 써
+    console.log('✅ 이벤트 이름:', name);
+  } catch (e) {
+    console.error('❌ eventDidMount 오류:', e);
+  }
+
+  if (info.event.extendedProps?.completed) {
+    info.el.style.opacity = '0.6';
+    info.el.style.textDecoration = 'line-through';
+  }
+}
+
   });
   
   try {
-    calendar.render();
+    calendarInstance.render(); // ✅ 이 줄 바로 아래에 넣는다!
+
+  calendar = calendarInstance; // 전역 변수 calendar에 할당
+  window.calendar = calendarInstance; // 다른 JS에서 접근 가능하게
     console.log('Calendar rendered successfully');
     
     // 캘린더 이벤트 로드
@@ -93,7 +108,7 @@ calendar = new Calendar(calendarEl, {
     initEventHandlers();
     
     // 캘린더 객체를 전역으로 노출
-    window.calendar = calendar;
+    
     
     return calendar;
   } catch (error) {
@@ -103,32 +118,39 @@ calendar = new Calendar(calendarEl, {
   }
 }
 
-// 캘린더 이벤트 로드
 async function loadCalendarEvents() {
   try {
-    // 서버에서 이벤트 로드 (실제 구현 시 추가)
-    // const response = await fetch('/api/calendar-events', {
-    //   headers: { 'Authorization': `Bearer ${getAuthToken()}` }
-    // });
-    // const events = await response.json();
-    
-    // 테스트용 더미 데이터
+    console.log('📥 loadCalendarEvents 호출됨');
+
     const events = generateMockCalendarEvents();
-    
-    // 이벤트 추가
+
+    console.log('📦 Generated mock events:', events);
+
     events.forEach(event => {
+      if (!event.extendedProps) event.extendedProps = {};
       calendar.addEvent(event);
     });
-    
-    console.log(`Loaded ${events.length} calendar events`);
+
+    console.log(`✅ Loaded ${events.length} calendar events`);
   } catch (error) {
-    console.error('Failed to load calendar events:', error);
-    showToast('오류', '캘린더 일정을 불러오는 중 오류가 발생했습니다.', 'error');
+    console.error('❗ Failed to load calendar events:', error);
   }
 }
 
+
+
 // 이벤트 상세 정보 표시
 function showEventDetails(event) {
+  if (!event || !event.title) {
+    console.error('이벤트 정보가 유효하지 않습니다:', event);
+    return;
+  }
+
+  const titleEl = document.getElementById('event-title');
+  if (titleEl) {
+    titleEl.textContent = event.title;
+  }
+
   currentEvent = event;
   
   document.getElementById('event-title').textContent = event.title;
@@ -231,62 +253,27 @@ function initEventHandlers() {
   }
 }
 
-// 모의 캘린더 이벤트 생성
 function generateMockCalendarEvents() {
-  const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  
-  const events = [];
-  const subjects = ['수학', '영어', '프로그래밍', '과학', '국어', '사회'];
-  const activities = ['학습', '문제 풀이', '복습', '테스트', '프로젝트'];
-  
-  // 과목별 색상
-  const subjectColors = {
-    '수학': '#4361ee',
-    '영어': '#3a0ca3',
-    '국어': '#7209b7',
-    '과학': '#4cc9f0',
-    '사회': '#f72585',
-    '프로그래밍': '#4f772d'
-  };
-  
-  // 15개의 이벤트 생성 (더 많은 데이터로 테스트)
-  for (let i = 0; i < 15; i++) {
-    const eventDate = new Date(
-      startOfMonth.getTime() + 
-      Math.random() * (endOfMonth.getTime() - startOfMonth.getTime())
-    );
-    
-    const subject = subjects[Math.floor(Math.random() * subjects.length)];
-    const activity = activities[Math.floor(Math.random() * activities.length)];
-    
-    const startHour = 9 + Math.floor(Math.random() * 10); // 9AM - 7PM
-    eventDate.setHours(startHour, 0, 0, 0);
-    
-    const durationHours = 1 + Math.floor(Math.random() * 3); // 1-3 hours
-    const endDate = new Date(eventDate);
-    endDate.setHours(startHour + durationHours, 0, 0, 0);
-    
-    const color = subjectColors[subject] || '#4361ee';
-    
-    events.push({
-      id: `mock-event-${i}`,
-      title: `${subject} - ${activity}`,
-      start: eventDate.toISOString(),
-      end: endDate.toISOString(),
-      backgroundColor: color,
-      borderColor: color,
+  const events = [
+    {
+      id: 'test-1',
+      title: '테스트 이벤트',
+      start: new Date().toISOString(),
+      end: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      backgroundColor: '#f00',
+      borderColor: '#f00',
       extendedProps: {
-        subject: subject,
-        notes: `${subject} ${activity} 일정입니다.`,
-        completed: Math.random() > 0.7 // 약 30% 확률로 완료 상태
+        subject: '과목 없음',
+        notes: '설명 없음',
+        completed: false
       }
-    });
-  }
-  
+    }
+  ];
+
+  console.log('📦 [DEBUG] 이벤트 객체:', events[0]); // ✅ 이제 이거 실행됨
   return events;
 }
+
 
 // 과목별 색상 가져오기
 function getSubjectColor(subject) {
@@ -320,13 +307,16 @@ export function addEvent(eventData) {
     backgroundColor: eventData.color || getSubjectColor(eventData.subject || ''),
     borderColor: eventData.color || getSubjectColor(eventData.subject || ''),
     extendedProps: {
+      name: eventData.title, // ✅ 여기도 넣기!
       subject: eventData.subject || '',
       notes: eventData.notes || '',
       completed: false
     }
   };
   
+  // 🔽 여기 고쳐야 함!
   const calendarEvent = calendar.addEvent(newEvent);
+
   
   // 서버에 저장 요청
   saveEventToServer(newEvent);
@@ -471,3 +461,5 @@ window.calendarModule = {
   refreshCalendar,
   destroyCalendar
 };
+
+

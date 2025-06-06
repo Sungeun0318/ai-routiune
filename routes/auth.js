@@ -4,10 +4,7 @@ const router = express.Router();
 const User = require('../models/User');
 
 // 로그인 상태 확인
-router.get('/me', async (req, res) => {new Promise((resolve, reject) => {
-  
-
-})
+router.get('/me', async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ ok: false });
   }

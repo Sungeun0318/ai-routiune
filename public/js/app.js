@@ -13,28 +13,70 @@ import {
   fetchTodaySchedule 
 } from './routine.js';
 import { initCalendar } from './calendar.js';
-import { quotes } from './quotes.js'; // ✅ 명언 import
+import { quotes } from './quotes.js';
 
 // ✅ 앱 초기화 여부 플래그
 let appInitialized = false;
+
+// ✅ 모달 닫기 핸들러 추가
+function initModalHandlers() {
+  // 모든 모달의 X 버튼에 이벤트 리스너 추가
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('close-modal')) {
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        modal.classList.remove('active');
+        console.log('Modal closed via X button');
+      }
+    }
+  });
+
+  // 모달 배경 클릭 시 닫기
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal')) {
+      e.target.classList.remove('active');
+      console.log('Modal closed via background click');
+    }
+  });
+
+  // ESC 키로 모달 닫기
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const activeModals = document.querySelectorAll('.modal.active');
+      activeModals.forEach(modal => {
+        modal.classList.remove('active');
+      });
+      console.log('Modal closed via ESC key');
+    }
+  });
+}
 
 // ✅ 앱 전체 초기화 함수
 export function initApp() {
   if (appInitialized) return;
   appInitialized = true;
 
+  console.log('🚀 앱 초기화 시작...');
+  
   initNavigation();
   initRoutineHandlers();
+  initModalHandlers(); // ✅ 모달 핸들러 추가
   setupEventListeners();
   setFetchUserDataFunction(fetchUserData);
+  
   checkAutoLogin()
     .then(isLoggedIn => {
-      if (isLoggedIn) return fetchUserData();
+      if (isLoggedIn) {
+        console.log('✅ 자동 로그인 성공');
+        return fetchUserData();
+      }
     })
-    .catch(error => console.error('Auto-login error:', error));
+    .catch(error => console.error('❌ Auto-login error:', error));
 
   // ✅ 명언 출력
   showRandomQuote();
+  
+  console.log('✅ 앱 초기화 완료');
 }
 
 // ✅ DOMContentLoaded 시 단 1회만 실행
@@ -78,23 +120,30 @@ function setupEventListeners() {
     logout();
   });
 
-  // ✅ 캘린더 탭 클릭 시 캘린더 초기화 (중복 호출 방지)
+  // ✅ 캘린더 탭 클릭 시 캘린더 초기화
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
       const page = item.getAttribute('data-page');
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(`${page}-page`)?.classList.add('active');
-
+      
       if (page === 'calendar') {
-        if (!window.calendar) {
-          window.initCalendar(); // 전역에 등록된 initCalendar 사용
-        }
+        console.log('📅 캘린더 탭 클릭됨');
+        setTimeout(() => {
+          try {
+            if (window.calendarModule?.initCalendar) {
+              console.log('🔄 캘린더 초기화 시도 (모듈)...');
+              window.calendarModule.initCalendar();
+            } else if (typeof initCalendar === 'function') {
+              console.log('🔄 캘린더 초기화 시도 (함수)...');
+              initCalendar();
+            } else {
+              console.error('❌ 캘린더 초기화 함수를 찾을 수 없습니다');
+            }
+          } catch (error) {
+            console.error('❌ 캘린더 초기화 오류:', error);
+          }
+        }, 200);
       }
     });
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeAllModals();
   });
 }
 
@@ -110,10 +159,16 @@ function showRandomQuote() {
 export function fetchUserData() {
   return new Promise((resolve, reject) => {
     try {
+      console.log('📊 사용자 데이터 로드 중...');
+      
       fetch('/api/user-stats', {
-        headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+        headers: { 
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
       })
         .then(response => {
+          console.log('📊 사용자 통계 응답:', response.status);
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             return response.json();
@@ -121,6 +176,7 @@ export function fetchUserData() {
           throw new Error('Invalid response format');
         })
         .then(userData => {
+          console.log('✅ 사용자 통계 데이터:', userData);
           const profileRoutineCount = document.getElementById('profile-routine-count');
           const profileCompletedCount = document.getElementById('profile-completed-count');
           if (profileRoutineCount) profileRoutineCount.textContent = userData.routineCount || 0;
@@ -131,13 +187,16 @@ export function fetchUserData() {
             fetchTodaySchedule()
           ]);
         })
-        .then(() => resolve(true))
+        .then(() => {
+          console.log('✅ 모든 사용자 데이터 로드 완료');
+          resolve(true);
+        })
         .catch(error => {
-          console.error('User data fetch error:', error);
+          console.error('❌ User data fetch error:', error);
           resolve(false);
         });
     } catch (error) {
-      console.error('User data fetch exception:', error);
+      console.error('❌ User data fetch exception:', error);
       reject(error);
     }
   });

@@ -1,4 +1,6 @@
-// UI 관련 조작 함수들
+// UI 관련 조작 함수들 - 백엔드 연동 버전
+import { getAuthToken } from './auth.js';
+
 // 모달 요소 참조
 const modals = {
   routine: () => document.getElementById('routine-modal'),
@@ -57,6 +59,11 @@ export function initNavigation() {
             }
           }, 100);
         }
+        
+        // 프로필 페이지인 경우 프로필 데이터 로드
+        if (pageName === 'profile') {
+          loadProfileData();
+        }
       } else {
         console.error('Target page not found:', `${pageName}-page`);
       }
@@ -66,6 +73,117 @@ export function initNavigation() {
   // 탭 초기화
   initTabs('.auth-tabs', '.tab', '.auth-form');
   initTabs('.tabs', '.tab', '.tab-pane');
+  
+  // 프로필 폼 핸들러 초기화
+  initProfileHandlers();
+}
+
+// 프로필 관련 핸들러 초기화
+function initProfileHandlers() {
+  const profileForm = document.getElementById('profile-form');
+  if (profileForm) {
+    profileForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await updateProfile();
+    });
+  }
+}
+
+// 프로필 데이터 로드
+async function loadProfileData() {
+  try {
+    const response = await fetch('/api/profile', {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const profileData = await response.json();
+    updateProfileDisplay(profileData);
+    
+  } catch (error) {
+    console.error('❌ Error loading profile:', error);
+    showToast('오류', '프로필 정보를 불러오는 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+// 프로필 정보 업데이트
+async function updateProfile() {
+  try {
+    const formData = {
+      displayName: document.getElementById('profile-display-name').value.trim(),
+      email: document.getElementById('profile-email').value.trim(),
+      currentPassword: document.getElementById('profile-password').value,
+      newPassword: document.getElementById('profile-confirm-password').value
+    };
+    
+    // 비밀번호 변경 유효성 검사
+    if (formData.newPassword && !formData.currentPassword) {
+      showToast('오류', '비밀번호를 변경하려면 현재 비밀번호를 입력해주세요.', 'error');
+      return;
+    }
+    
+    if (formData.newPassword && formData.newPassword.length < 4) {
+      showToast('오류', '새 비밀번호는 최소 4자리 이상이어야 합니다.', 'error');
+      return;
+    }
+    
+    const response = await fetch('/api/profile', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || '프로필 업데이트 실패');
+    }
+    
+    showToast('성공', result.message, 'success');
+    
+    // 폼 리셋 (비밀번호 필드만)
+    document.getElementById('profile-password').value = '';
+    document.getElementById('profile-confirm-password').value = '';
+    
+    // 프로필 데이터 새로고침
+    loadProfileData();
+    
+  } catch (error) {
+    console.error('❌ Error updating profile:', error);
+    showToast('오류', error.message, 'error');
+  }
+}
+
+// 프로필 디스플레이 업데이트
+function updateProfileDisplay(profileData) {
+  // 기본 정보 표시
+  const usernameDisplay = document.getElementById('username-display');
+  const profileUsername = document.getElementById('profile-username');
+  const profileJoinDate = document.getElementById('profile-join-date');
+  const profileRoutineCount = document.getElementById('profile-routine-count');
+  const profileCompletedCount = document.getElementById('profile-completed-count');
+  
+  if (usernameDisplay) usernameDisplay.textContent = profileData.username;
+  if (profileUsername) profileUsername.textContent = profileData.displayName || profileData.username;
+  if (profileJoinDate) profileJoinDate.textContent = `가입일: ${profileData.joinDate}`;
+  if (profileRoutineCount) profileRoutineCount.textContent = profileData.routineCount || 0;
+  if (profileCompletedCount) profileCompletedCount.textContent = profileData.completedCount || 0;
+  
+  // 폼 필드 채우기
+  const displayNameInput = document.getElementById('profile-display-name');
+  const emailInput = document.getElementById('profile-email');
+  
+  if (displayNameInput) displayNameInput.value = profileData.displayName || profileData.username;
+  if (emailInput) emailInput.value = profileData.email || '';
 }
 
 // 앱 화면 표시
@@ -274,7 +392,6 @@ export function initTabs(containerSelector, tabSelector, contentSelector) {
 }
 
 // DOM 요소 렌더링 함수들
-
 export function renderRecentRoutines(routines, mode = 'card') {
   const container = document.getElementById('recent-routines-list');
   if (!container) {
@@ -324,8 +441,6 @@ export function renderRecentRoutines(routines, mode = 'card') {
   });
 }
 
-
-
 export function renderTodaySchedule(schedule, containerId = 'today-schedule-list') {
   console.log('Rendering today schedule:', schedule.length);
 
@@ -337,6 +452,17 @@ export function renderTodaySchedule(schedule, containerId = 'today-schedule-list
 
   container.innerHTML = '';
 
+  if (!schedule || schedule.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="ri-calendar-line"></i>
+        <p>오늘 예정된 일정이 없습니다.</p>
+      </div>
+    `;
+    updateOverallProgress([]);
+    return;
+  }
+
   const ul = document.createElement('ul');
   ul.className = 'schedule-list';
 
@@ -347,11 +473,35 @@ export function renderTodaySchedule(schedule, containerId = 'today-schedule-list
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = item.completed;
+    checkbox.setAttribute('data-event-id', item.id);
 
-    // ✅ 체크 상태가 바뀌면 item.completed 상태 변경 + 완료율 업데이트
-    checkbox.addEventListener('change', () => {
+    // 체크 상태가 바뀌면 서버에 업데이트 요청
+    checkbox.addEventListener('change', async () => {
       item.completed = checkbox.checked;
       updateOverallProgress(schedule);
+      
+      // 서버에 완료 상태 업데이트
+      try {
+        await fetch(`/api/calendar/events/${item.id}/complete`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${getAuthToken()}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        // 캘린더도 새로고침 (있는 경우)
+        if (window.calendarModule?.refreshCalendar) {
+          window.calendarModule.refreshCalendar();
+        }
+        
+      } catch (error) {
+        console.error('❌ Error updating completion status:', error);
+        // 에러 시 체크박스 원래 상태로 되돌리기
+        checkbox.checked = !checkbox.checked;
+        item.completed = checkbox.checked;
+        updateOverallProgress(schedule);
+      }
     });
 
     const timeDiv = document.createElement('div');
@@ -365,6 +515,16 @@ export function renderTodaySchedule(schedule, containerId = 'today-schedule-list
     titleDiv.className = 'title';
     titleDiv.textContent = item.title;
 
+    // 과목 정보가 있으면 표시
+    if (item.subject) {
+      const subjectDiv = document.createElement('div');
+      subjectDiv.className = 'subject';
+      subjectDiv.textContent = item.subject;
+      subjectDiv.style.fontSize = '0.8rem';
+      subjectDiv.style.color = 'var(--text-light)';
+      taskDiv.appendChild(subjectDiv);
+    }
+
     taskDiv.appendChild(titleDiv);
     li.appendChild(checkbox);
     li.appendChild(timeDiv);
@@ -375,86 +535,46 @@ export function renderTodaySchedule(schedule, containerId = 'today-schedule-list
 
   container.appendChild(ul);
 
-  // ✅ 초기 렌더링 시 전체 progress 업데이트
+  // 초기 렌더링 시 전체 progress 업데이트
   updateOverallProgress(schedule);
 }
 
-
-
-// ✅ 오늘의 전체 완료율 계산 및 반영
+// 오늘의 전체 완료율 계산 및 반영
 export function updateOverallProgress(schedule) {
   const bar = document.getElementById('overall-progress-bar');
   const text = document.getElementById('overall-progress-text');
-  if (!bar || !text || !schedule || schedule.length === 0) return;
+  if (!bar || !text || !schedule || schedule.length === 0) {
+    if (bar) bar.value = 0;
+    if (text) text.textContent = '0%';
+    return;
+  }
 
   const completedCount = schedule.filter(item => item.completed).length;
   const percent = Math.round((completedCount / schedule.length) * 100);
 
   bar.value = percent;
   text.textContent = `${percent}%`;
+  
+  console.log(`📊 Progress updated: ${completedCount}/${schedule.length} (${percent}%)`);
 }
 
-
-// 프로필 데이터 업데이트
+// 프로필 데이터 업데이트 (레거시 호환)
 export function updateProfileData(userData) {
   if (!userData) return;
   
   console.log('Updating profile data:', userData);
-  
-  // 프로필 기본 정보
-  if (userData.username) {
-    const profileUsername = document.getElementById('profile-username');
-    const usernameDisplay = document.getElementById('username-display');
-    
-    if (profileUsername) profileUsername.textContent = userData.username;
-    if (usernameDisplay) usernameDisplay.textContent = userData.username;
-  }
-  
-  // 가입일
-  if (userData.joinDate) {
-    const joinDateEl = document.getElementById('profile-join-date');
-    if (joinDateEl) {
-      joinDateEl.textContent = `가입일: ${userData.joinDate}`;
-    }
-  }
-  
-  // 통계
-  if (userData.routineCount !== undefined) {
-    const routineCountEl = document.getElementById('profile-routine-count');
-    if (routineCountEl) {
-      routineCountEl.textContent = userData.routineCount;
-    }
-  }
-  
-  if (userData.completedCount !== undefined) {
-    const completedCountEl = document.getElementById('profile-completed-count');
-    if (completedCountEl) {
-      completedCountEl.textContent = userData.completedCount;
-    }
-  }
-  
-  // 폼 데이터
-  if (userData.username) {
-    const displayNameInput = document.getElementById('profile-display-name');
-    if (displayNameInput) {
-      displayNameInput.value = userData.username;
-    }
-  }
-  
-  if (userData.email) {
-    const emailInput = document.getElementById('profile-email');
-    if (emailInput) {
-      emailInput.value = userData.email;
-    }
-  }
+  updateProfileDisplay(userData);
 }
 
 export function handleProfileUpdate(formData, onSuccess) {
   console.log('Handling profile update:', formData);
   
   // 프로필 업데이트 로직
-  // 성공 시 콜백 실행
   if (onSuccess && typeof onSuccess === 'function') {
     onSuccess();
   }
 }
+
+// 전역 함수로 노출 (다른 모듈에서 접근 가능하도록)
+window.showModal = showModal;
+window.hideModal = hideModal;
