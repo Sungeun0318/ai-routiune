@@ -259,7 +259,7 @@ input:focus, select:focus, textarea:focus {
 
 /* ⬇ 여기에 추가 */
 .logo-container img.logo-image {
-  width: 120px;
+  width: 150px;
   height: auto;
   object-fit: contain;
   display: block;

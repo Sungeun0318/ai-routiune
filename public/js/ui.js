@@ -599,3 +599,23 @@ export async function fetchRecentRoutines() {
     showToast('오류', '최근 루틴을 불러오는 중 문제가 발생했습니다.', 'error');
   }
 }
+
+// 류찬형
+document.addEventListener('DOMContentLoaded', () => {
+  const editBtn = document.getElementById('edit-event');
+  const editModal = document.getElementById('edit-schedule-modal');
+
+  if (editBtn && editModal) {
+    editBtn.addEventListener('click', () => {
+      editModal.style.display = 'block';
+    });
+  }
+
+  const closeBtns = editModal?.querySelectorAll('.close-modal, #cancel-schedule-edit');
+  closeBtns?.forEach(btn => {
+    btn.addEventListener('click', () => {
+      editModal.style.display = 'none';
+    });
+  });
+});
+

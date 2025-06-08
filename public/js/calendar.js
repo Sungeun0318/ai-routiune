@@ -274,7 +274,7 @@ function initEventHandlers() {
     editBtn.onclick = () => {
       if (currentEvent) {
         if (window.hideModal) window.hideModal('eventDetail');
-        if (window.showToast) window.showToast('준비 중', '일정 편집 기능은 준비 중입니다.', 'info');
+        /* if (window.showToast) window.showToast('준비 중', '일정 편집 기능은 준비 중입니다.', 'info'); */ //류찬형
       }
     };
   }

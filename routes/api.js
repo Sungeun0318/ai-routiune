@@ -2,7 +2,6 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const Recommendation = require('../models/Recommendation');
-const Routine = require('../models/Routine'); // ← 루틴 모델 불러오기
 
 const requireLogin = (req, res, next) => {
   if (!req.session.userId) return res.status(401).json({ error: '로그인이 필요합니다' });
@@ -126,18 +125,22 @@ router.post('/recommend', async (req, res) => {
   }
 });
 
+const Routine = require('../models/Routine'); // 모델 경로에 맞게 수정 필요
+
 router.get('/routines/recent', async (req, res) => {
   try {
     const routines = await Routine.find({ userId: req.session.userId })
-      .sort({ createdAt: -1 }) // 최근 생성 순
-      .limit(3); // 3개만 가져옴
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .select('title subjects createdAt');
 
     res.json({ routines });
-  } catch (err) {
-    console.error('최근 루틴 조회 실패:', err);
-    res.status(500).json({ error: '루틴 불러오기 실패' });
+  } catch (error) {
+    console.error('❌ 최근 루틴 불러오기 오류:', error);
+    res.status(500).json({ routines: [] });
   }
 });
+
 
 
 function generateEnhancedDailyRoutines(profile) {
@@ -286,3 +289,33 @@ router.get('/user-stats', (req, res) => {
 });
 
 module.exports = router;
+
+// 루틴 저장 라우터 추가
+router.post('/routines/save', async (req, res) => {
+  try {
+    const { routineItems, fullRoutine, dailyRoutines, startDate, duration } = req.body;
+
+    const subjects = routineItems.map(item => item.subject);
+    const title = subjects.length > 1
+      ? `${subjects[0]} 외 ${subjects.length - 1}개`
+      : subjects[0] || 'AI 추천 루틴';
+
+    const newRoutine = new Routine({
+      userId: req.session.userId,
+      title,
+      subjects,
+      fullRoutine,
+      dailyRoutines,
+      startDate,
+      duration
+    });
+
+    await newRoutine.save();
+    console.log('✅ 루틴 DB 저장 완료:', newRoutine._id);
+
+    res.status(201).json({ ok: true, id: newRoutine._id });
+  } catch (err) {
+    console.error('❌ 루틴 저장 오류:', err);
+    res.status(500).json({ ok: false });
+  }
+});

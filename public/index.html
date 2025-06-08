@@ -73,9 +73,10 @@
   <div id="app-container" style="display: none;">
     <!-- 사이드바 -->
     <aside class="sidebar">
-      <div class="logo-container">
-  <img src="plan.png" alt="로고" class="logo-image" />
+<div class="logo-container">
+  <img src="/assets/logo.png" alt="로고" style="width: 120px" />
 </div>
+
 
 
       
@@ -281,18 +282,19 @@
                 </select>
               </div>
               
-              <!-- 알림 토글 -->
+              <!--
               <div class="form-group checkbox">
                 <input type="checkbox" id="toggle-notification" checked>
                 <label for="toggle-notification">알림 받기</label>
               </div>
-              
+              -->
               <div class="form-group checkbox">
                 <input type="checkbox" id="exclude-holidays">
                 <label for="exclude-holidays">공휴일 제외</label>
               </div>
             </div>
             
+            <!--
             <div class="settings-card card">
               <h2>알림 설정</h2>
               <div class="form-group checkbox">
@@ -304,6 +306,7 @@
                 <label for="push-notifications">푸시 알림</label>
               </div>
             </div>
+            -->
             
             <div class="settings-card card">
               <h2>데이터 관리</h2>
@@ -510,27 +513,30 @@
         <button class="close-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="tabs">
-          <div class="tab active" data-tab="full-routine">전체 루틴</div>
-          <div class="tab" data-tab="daily-routine">일별 보기</div>
-        </div>
+<div class="tabs">
+  <div class="tab active" data-tab="full-routine">전체 루틴</div>
+  <div class="tab" data-tab="daily-routine">일별 보기</div>
+</div>
         
-        <div class="tab-content">
-          <div class="tab-pane active" id="full-routine">
-            <div id="full-routine-content" class="routine-text"></div>
-          </div>
-          <div class="tab-pane" id="daily-routine">
-            <div class="day-selector">
-              <button class="btn btn-icon" id="prev-day"><i class="ri-arrow-left-s-line"></i></button>
-              <span id="current-day-display">1일차</span>
-              <button class="btn btn-icon" id="next-day"><i class="ri-arrow-right-s-line"></i></button>
-            </div>
-            <div id="daily-routine-content" class="routine-text"></div>
-            <div class="edit-controls">
-              <button class="btn btn-secondary" id="edit-daily-routine">일정 수정</button>
-            </div>
-          </div>
-        </div>
+<div class="tab-content">
+  <div class="tab-pane active" id="full-routine">
+    <div id="full-routine-content" class="routine-text"></div>
+    <textarea id="routine-editor" style="display: none; width: 100%; height: 300px;"></textarea> <!-- 류찬형 -->
+    <button id="edit-routine-btn" class="btn btn-secondary" style="margin-top: 10px;">편집</button> <!-- 류찬형 -->
+  </div>
+  <div class="tab-pane" id="daily-routine">
+    <div class="day-selector">
+      <button class="btn btn-icon" id="prev-day"><i class="ri-arrow-left-s-line"></i></button>
+      <span id="current-day-display">1일차</span>
+      <button class="btn btn-icon" id="next-day"><i class="ri-arrow-right-s-line"></i></button>
+    </div>
+    <div id="daily-routine-content" class="routine-text"></div>
+    <div class="edit-controls">
+      <button class="btn btn-secondary" id="edit-daily-routine">일정 수정</button>
+    </div>
+  </div>
+</div>
+
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="regenerate-routine">다시 생성</button>
@@ -540,7 +546,7 @@
   </div>
 
   <!-- 일정 편집 모달 -->
-  <div id="edit-schedule-modal" class="modal">
+  <div id="edit-schedule-modal" class="modal">  
     <div class="modal-content">
       <div class="modal-header">
         <h2>일정 편집</h2>
@@ -549,6 +555,14 @@
       <div class="modal-body">
         <div id="schedule-items-container">
           <!-- 여기에 일정 항목들이 추가됩니다 -->
+           <label for="edit-title">제목</label>
+        <input type="text" id="edit-title" placeholder="예: 루틴 리뷰 및 다음 주 계획" />
+
+        <label for="edit-time">시간</label>
+        <input type="text" id="edit-time" placeholder="예: 10:00 - 11:00" />
+
+        <label for="edit-memo">메모</label>
+        <textarea id="edit-memo" rows="3" placeholder="예: 지난 학습을 되돌아보고 다음 주 목표를 계획해보세요."></textarea> <!--류찬형-->
         </div>
       </div>
       <div class="modal-footer">

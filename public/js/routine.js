@@ -611,6 +611,7 @@ async function generateRoutine() {
       updateDailyRoutineView();
       
       showModal('routineResult');
+      renderRoutineTabs(); // 👈 이 줄 추가
       showToast('성공', 'AI 루틴이 생성되었습니다!', 'success');
     } else {
       throw new Error('Invalid response format');
@@ -880,14 +881,15 @@ async function saveRoutineToDatabase() {
       dailyRoutines: dailyRoutines
     };
     
-    const response = await fetch('/api/routines/save', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
-      },
-      body: JSON.stringify(saveData)
-    });
+  const response = await fetch('/api/routines/save', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getAuthToken()}`
+  },
+  body: JSON.stringify(saveData)
+  });
+
     
     if (!response.ok) {
       throw new Error('Failed to save routine');
@@ -945,3 +947,93 @@ export function renderRecentRoutines(routines) {
     container.appendChild(el);
   });
 }
+
+function renderRoutineTabs() {
+  const 전체탭 = document.getElementById("tab-full");
+  const 일별탭 = document.getElementById("tab-daily");
+  const routineContent = document.getElementById("routine-content");
+
+  if (!전체탭 || !일별탭 || !routineContent || !generatedRoutine || !dailyRoutines) {
+    return;
+  }
+
+  전체탭.onclick = () => {
+    routineContent.innerHTML = `<pre>${generatedRoutine}</pre>`;
+  };
+
+  일별탭.onclick = () => {
+    routineContent.innerHTML = dailyRoutines
+      .map(day => {
+        const date = new Date(day.date).toLocaleDateString('ko-KR', {
+          year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+        });
+        const schedules = day.schedules || [];
+        const scheduleHtml = schedules.map(s =>
+          `<li><strong>${s.startTime} ~ ${s.endTime}</strong> | ${s.title}</li>`
+        ).join('');
+        return `<h4>${date}</h4><ul>${scheduleHtml}</ul>`;
+      })
+      .join("<hr>");
+  };
+}
+
+// 탭 클릭 시 내용 전환 처리
+document.querySelector('.tab[data-tab="full-routine"]')?.addEventListener('click', () => {
+  document.getElementById('full-routine').style.display = 'block';
+  document.getElementById('daily-routine').style.display = 'none';
+});
+
+document.querySelector('.tab[data-tab="daily-routine"]')?.addEventListener('click', () => {
+  document.getElementById('full-routine').style.display = 'none';
+  document.getElementById('daily-routine').style.display = 'block';
+});
+
+// 탭 클릭 시 활성화 처리
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    const target = tab.getAttribute('data-tab');
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+      pane.classList.remove('active');
+    });
+    document.getElementById(target)?.classList.add('active');
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const editBtn = document.getElementById('edit-routine-btn');
+  const routineViewer = document.getElementById('full-routine-content');
+  const routineEditor = document.getElementById('routine-editor');
+
+  if (editBtn && routineViewer && routineEditor) {
+    editBtn.addEventListener('click', () => {
+      // 현재 보기 텍스트를 textarea에 복사
+      routineEditor.value = routineViewer.innerText;
+
+      // 보기 영역 숨기고 textarea 보이게 하기
+      routineViewer.style.display = 'none';
+      routineEditor.style.display = 'block';
+
+      // 버튼 텍스트를 [편집 완료]로 바꾸기
+      editBtn.textContent = '편집 완료';
+
+      // 다시 누르면 편집 종료
+      editBtn.onclick = () => {
+        // textarea 내용 다시 표시
+        routineViewer.innerText = routineEditor.value;
+
+        // textarea 숨기고 보기 영역 다시 보이게
+        routineEditor.style.display = 'none';
+        routineViewer.style.display = 'block';
+
+        // 버튼 텍스트 원상복구
+        editBtn.textContent = '편집';
+        // 이벤트 다시 설정
+        editBtn.onclick = null;
+      };
+    });
+  }
+});
+

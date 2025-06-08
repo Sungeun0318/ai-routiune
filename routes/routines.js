@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const recommendationController = require('../controllers/Recommendation');
 
 const requireLogin = (req, res, next) => {
   if (!req.session.userId) {
@@ -128,5 +129,8 @@ router.delete('/:routineId', requireLogin, async (req, res) => {
     res.status(500).json({ error: '루틴을 삭제하는 중 오류가 발생했습니다' });
   }
 });
+
+// 일일 단위 루틴 미리보기 (AI 기반 생성)
+router.post('/generate', requireLogin, recommendationController.generateRoutine);
 
 module.exports = router;
