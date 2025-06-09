@@ -1,129 +1,84 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-// 로그인 상태 확인 (/api/me)
-router.get('/me', async (req, res) => {
-  console.log('📋 /me 요청, 세션 ID:', req.session.userId);
-  
-  if (!req.session.userId) {
-    return res.status(401).json({ ok: false, message: '로그인이 필요합니다' });
-  }
-  
-  try {
-    const user = await User.findById(req.session.userId).select('-passwordHash -password');
-    if (!user) {
-      return res.status(401).json({ ok: false, message: '사용자를 찾을 수 없습니다' });
-    }
-    
-    console.log('✅ 사용자 인증 성공:', user.username);
-    return res.json({ 
-      ok: true, 
-      user: { 
-        username: user.username,
-        nickname: user.nickname || user.username
-      } 
-    });
-  } catch (err) {
-    console.error('❌ 인증 확인 오류:', err);
-    return res.status(500).json({ ok: false, error: '서버 오류가 발생했습니다' });
-  }
-});
-
-// 세션 확인 (추가 엔드포인트)
-router.get('/check-session', async (req, res) => {
-  console.log('🔍 세션 확인 요청:', req.session.userId);
-  
-  if (!req.session.userId) {
-    return res.json({ authenticated: false });
-  }
-  
-  try {
-    const user = await User.findById(req.session.userId).select('-passwordHash -password');
-    if (!user) {
-      return res.json({ authenticated: false });
-    }
-    
-    return res.json({ 
-      authenticated: true, 
-      user: { 
-        username: user.username,
-        nickname: user.nickname || user.username
-      } 
-    });
-  } catch (err) {
-    console.error('❌ 세션 확인 오류:', err);
-    return res.json({ authenticated: false });
-  }
-});
-
-// 회원가입
+// ✅ 회원가입
 router.post('/register', async (req, res) => {
-  console.log('📝 회원가입 요청:', req.body);
-  
-  const { username, password } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({ 
-      ok: false, 
-      message: '사용자명과 비밀번호를 입력해주세요' 
-    });
-  }
-
-  if (password.length < 4) {
-    return res.status(400).json({ 
-      ok: false, 
-      message: '비밀번호는 최소 4자리 이상이어야 합니다' 
-    });
-  }
-
   try {
-    // 기존 사용자 확인
-    const existing = await User.findOne({ username });
-    if (existing) {
-      return res.status(409).json({ 
+    console.log('📝 회원가입 시도:', req.body.username);
+    
+    const { username, password, nickname, email } = req.body;
+    
+    // 입력값 검증
+    if (!username || !password) {
+      return res.status(400).json({ 
         ok: false, 
-        message: '이미 존재하는 사용자입니다' 
+        message: '아이디와 비밀번호를 입력해주세요' 
       });
     }
-
+    
+    if (username.length < 3 || username.length > 20) {
+      return res.status(400).json({ 
+        ok: false, 
+        message: '아이디는 3-20자 사이여야 합니다' 
+      });
+    }
+    
+    if (password.length < 4) {
+      return res.status(400).json({ 
+        ok: false, 
+        message: '비밀번호는 최소 4자리 이상이어야 합니다' 
+      });
+    }
+    
+    // 기존 사용자 확인
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      console.log('❌ 중복 사용자:', username);
+      return res.status(409).json({ 
+        ok: false, 
+        message: '이미 존재하는 아이디입니다' 
+      });
+    }
+    
     // 비밀번호 해시화
-    const passwordHash = await bcrypt.hash(password, 10);
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
     
     // 새 사용자 생성
-    const user = await User.create({ 
-      username, 
-      passwordHash,
-      nickname: username,
-      email: '',
-      lastLogin: new Date(),
+    const newUser = new User({
+      username,
+      passwordHash: hashedPassword,
+      nickname: nickname || username,
+      email: email || '',
       routines: [],
       calendarEvents: [],
       preferences: {
         theme: 'light',
-        language: 'ko',
-        notifications: true
+        notifications: true,
+        defaultStudyHours: 2,
+        preferredFocusTime: 'morning'
       },
       stats: {
         totalRoutines: 0,
         completedEvents: 0,
-        totalStudyHours: 0,
-        streak: 0,
-        lastActivity: new Date()
-      }
+        currentStreak: 0,
+        lastActiveDate: new Date()
+      },
+      lastLogin: new Date()
     });
     
-    // 세션에 사용자 ID 저장
-    req.session.userId = user._id;
+    await newUser.save();
     
-    console.log('✅ 회원가입 성공:', user.username);
+    console.log('✅ 회원가입 성공:', newUser.username);
     
-    res.json({ 
+    res.status(201).json({ 
       ok: true, 
-      user: { 
-        username: user.username,
-        nickname: user.nickname || user.username
+      message: '회원가입이 완료되었습니다',
+      user: {
+        username: newUser.username,
+        nickname: newUser.nickname
       }
     });
     
@@ -136,20 +91,21 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 로그인
+// ✅ 로그인
 router.post('/login', async (req, res) => {
-  console.log('🔐 로그인 요청:', req.body);
-  
-  const { username, password } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({ 
-      ok: false, 
-      message: '사용자명과 비밀번호를 입력해주세요' 
-    });
-  }
-  
   try {
+    console.log('🔐 로그인 시도:', req.body.username);
+    
+    const { username, password } = req.body;
+    
+    // 입력값 검증
+    if (!username || !password) {
+      return res.status(400).json({ 
+        ok: false, 
+        message: '아이디와 비밀번호를 입력해주세요' 
+      });
+    }
+    
     // 사용자 찾기
     const user = await User.findOne({ username });
     if (!user) {
@@ -175,6 +131,7 @@ router.post('/login', async (req, res) => {
     
     // 마지막 로그인 시간 업데이트
     user.lastLogin = new Date();
+    user.stats.lastActiveDate = new Date();
     await user.save();
     
     console.log('✅ 로그인 성공:', user.username);
@@ -183,7 +140,8 @@ router.post('/login', async (req, res) => {
       ok: true, 
       user: { 
         username: user.username,
-        nickname: user.nickname || user.username
+        nickname: user.nickname || user.username,
+        email: user.email || ''
       }
     });
     
@@ -196,7 +154,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 로그아웃
+// ✅ 로그아웃
 router.post('/logout', (req, res) => {
   console.log('🚪 로그아웃 요청:', req.session.userId);
   
@@ -217,7 +175,50 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// 토큰 유효성 검사 (호환성을 위해 추가)
+// ✅ 인증 상태 확인 (프론트엔드에서 checkAuthStatus 함수가 호출)
+router.get('/check', async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.json({ 
+        authenticated: false,
+        message: '로그인이 필요합니다'
+      });
+    }
+    
+    const user = await User.findById(req.session.userId).select('-passwordHash');
+    if (!user) {
+      req.session.destroy();
+      return res.json({ 
+        authenticated: false,
+        message: '사용자를 찾을 수 없습니다'
+      });
+    }
+    
+    // 마지막 활동 시간 업데이트
+    user.stats.lastActiveDate = new Date();
+    await user.save();
+    
+    console.log('✅ 인증 확인 성공:', user.username);
+    
+    res.json({
+      authenticated: true,
+      user: {
+        username: user.username,
+        nickname: user.nickname || user.username,
+        email: user.email || ''
+      }
+    });
+    
+  } catch (err) {
+    console.error('❌ 인증 확인 오류:', err);
+    res.status(500).json({ 
+      authenticated: false,
+      message: '인증 확인 중 오류가 발생했습니다'
+    });
+  }
+});
+
+// ✅ 토큰 유효성 검사 (호환성을 위해 추가)
 router.get('/validate-token', async (req, res) => {
   if (!req.session.userId) {
     return res.json({ valid: false });
@@ -229,10 +230,50 @@ router.get('/validate-token', async (req, res) => {
       return res.json({ valid: false });
     }
     
-    return res.json({ valid: true });
+    return res.json({ 
+      valid: true,
+      user: {
+        username: user.username,
+        nickname: user.nickname || user.username
+      }
+    });
   } catch (err) {
     console.error('❌ 토큰 검증 오류:', err);
     return res.json({ valid: false });
+  }
+});
+
+// ✅ 현재 사용자 정보 가져오기 (프로필 페이지용)
+router.get('/me', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: '로그인이 필요합니다' });
+  }
+  
+  try {
+    const user = await User.findById(req.session.userId).select('-passwordHash');
+    if (!user) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
+    }
+    
+    res.json({
+      success: true,
+      user: {
+        username: user.username,
+        nickname: user.nickname || user.username,
+        email: user.email || '',
+        joinDate: new Intl.DateTimeFormat('ko', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }).format(user.createdAt || user.lastLogin),
+        routineCount: (user.routines || []).length,
+        completedCount: user.stats?.completedEvents || 0,
+        currentStreak: user.stats?.currentStreak || 0
+      }
+    });
+  } catch (err) {
+    console.error('❌ 사용자 정보 조회 오류:', err);
+    res.status(500).json({ error: '사용자 정보를 불러오는 중 오류가 발생했습니다' });
   }
 });
 
