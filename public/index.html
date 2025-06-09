@@ -73,12 +73,9 @@
   <div id="app-container" style="display: none;">
     <!-- 사이드바 -->
     <aside class="sidebar">
-<div class="logo-container">
-  <img src="/assets/logo.png" alt="로고" style="width: 120px" />
-</div>
-
-
-
+      <div class="logo-container">
+        <img src="/assets/logo.png" alt="로고" style="width: 120px" />
+      </div>
       
       <nav class="nav-menu">
         <ul>
@@ -118,7 +115,7 @@
       <!-- 상단 헤더 -->
       <header class="main-header">
         <div class="user-info">
-          <div id="nickname-display"></div>
+          <div id="nickname-display">사용자님</div>
         </div>
         <button id="create-routine-btn" class="btn btn-primary">
           <i class="ri-add-line"></i>
@@ -151,7 +148,7 @@
             <div class="today-schedule">
               <h2>오늘의 일정</h2>
 
-              <!-- ✅ 통합 프로그레스 바 추가 -->
+              <!-- 통합 프로그레스 바 추가 -->
               <div class="overall-progress card" style="margin-bottom: 1rem;">
                 <label>오늘의 완료율</label>
                 <div class="progress-container" style="display: flex; align-items: center; gap: 10px;">
@@ -185,38 +182,43 @@
                   <p id="profile-join-date">가입일: 2023년 6월 1일</p>
                 </div>
               </div>
+              
               <div class="profile-stats">
                 <div class="stat">
-                  <h3>생성된 루틴</h3>
+                  <h3>생성한 루틴</h3>
                   <p id="profile-routine-count">0</p>
                 </div>
                 <div class="stat">
-                  <h3>완료된 항목</h3>
+                  <h3>완료한 일정</h3>
                   <p id="profile-completed-count">0</p>
                 </div>
               </div>
             </div>
             
-            <div class="profile-settings card">
-              <h2>프로필 설정</h2>
+            <div class="profile-card">
+              <h2>프로필 수정</h2>
               <form id="profile-form">
                 <div class="form-group">
-                  <label for="profile-display-name">닉네임</label>
-                  <input type="text" id="profile-display-name">
+                  <label for="profile-display-name">표시 이름</label>
+                  <input type="text" id="profile-display-name" class="form-control">
                 </div>
+                
                 <div class="form-group">
                   <label for="profile-email">이메일</label>
-                  <input type="email" id="profile-email">
+                  <input type="email" id="profile-email" class="form-control">
                 </div>
+                
                 <div class="form-group">
                   <label for="profile-password">현재 비밀번호</label>
-                  <input type="password" id="profile-password" placeholder="비밀번호 변경 시 입력">
+                  <input type="password" id="profile-password" class="form-control">
                 </div>
+                
                 <div class="form-group">
                   <label for="profile-confirm-password">새 비밀번호</label>
-                  <input type="password" id="profile-confirm-password" placeholder="새 비밀번호 입력">
+                  <input type="password" id="profile-confirm-password" class="form-control">
                 </div>
-                <button type="submit" class="btn btn-primary">저장</button>
+                
+                <button type="submit" class="btn btn-primary">프로필 수정</button>
               </form>
             </div>
           </div>
@@ -224,45 +226,39 @@
 
         <!-- 캘린더 페이지 -->
         <div id="calendar-page" class="page">
-          <h1>학습 캘린더</h1>
-  
-          <!-- ✅ 저장 버튼 추가 -->
-          <div style="margin-bottom: 10px;">
-            <button id="save-calendar-events" class="btn btn-primary">일정 저장</button>
-          </div>
-
+          <h1>캘린더</h1>
           <div id="calendar"></div>
         </div>
 
-
         <!-- 도움말 페이지 -->
         <div id="help-page" class="page">
-          <h1>도움말</h1>
           <div class="help-content">
-            <div class="faq-section card">
-              <h2>자주 묻는 질문</h2>
-              <div class="faq-item">
-                <h3>루틴은 어떻게 생성하나요?</h3>
-                <p>화면 오른쪽 상단의 '새 루틴 생성' 버튼을 클릭하여 시작합니다. 과목, 시간, 집중 시간대 등의 정보를 입력하면 AI가 최적의 학습 루틴을 생성해드립니다.</p>
+            <div class="card">
+              <h1>도움말</h1>
+              <div class="faq-section">
+                <div class="faq-item">
+                  <h3>루틴은 어떻게 생성하나요?</h3>
+                  <p>상단의 "새 루틴 생성" 버튼을 클릭하여 과목, 시간, 집중 시간대 등의 정보를 입력하면 AI가 최적의 학습 루틴을 생성해드립니다.</p>
+                </div>
+                <div class="faq-item">
+                  <h3>생성된 루틴을 수정할 수 있나요?</h3>
+                  <p>네, 생성된 루틴은 캘린더에서 직접 수정할 수 있습니다. 일정을 클릭하여 세부 내용을 변경하거나 드래그하여 시간을 조정할 수 있습니다.</p>
+                </div>
+                <div class="faq-item">
+                  <h3>하루에 몇 개의 루틴을 생성할 수 있나요?</h3>
+                  <p>최대 10개까지의 루틴을 생성할 수 있습니다. 각 루틴마다 다른 과목이나 학습 목표를 설정할 수 있습니다.</p>
+                </div>
               </div>
-              <div class="faq-item">
-                <h3>생성된 루틴을 수정할 수 있나요?</h3>
-                <p>네, 생성된 루틴은 캘린더에서 직접 수정할 수 있습니다. 일정을 클릭하여 세부 내용을 변경하거나 드래그하여 시간을 조정할 수 있습니다.</p>
+              <div class="contact-section card">
+                <h2>문의하기</h2>
+                <p>추가 문의사항이 있으시면 아래 이메일로 연락해주세요:</p>
+                <a href="mailto:support@routineplanner.com">support@routineplanner.com</a>
               </div>
-              <div class="faq-item">
-                <h3>하루에 몇 개의 루틴을 생성할 수 있나요?</h3>
-                <p>최대 10개까지의 루틴을 생성할 수 있습니다. 각 루틴마다 다른 과목이나 학습 목표를 설정할 수 있습니다.</p>
-              </div>
-            </div>
-            <div class="contact-section card">
-              <h2>문의하기</h2>
-              <p>추가 문의사항이 있으시면 아래 이메일로 연락해주세요:</p>
-              <a href="mailto:support@routineplanner.com">support@routineplanner.com</a>
             </div>
           </div>
         </div>
 
-        <!-- 설정 페이지 - 수정된 버전 (중복 제거) -->
+        <!-- 설정 페이지 -->
         <div id="settings-page" class="page">
           <h1>설정</h1>
           <div class="settings-content">
@@ -296,29 +292,11 @@
               </div>
               -->
               <div class="form-group checkbox">
-                <input type="checkbox" id="exclude-holidays">
-                <label for="exclude-holidays">공휴일 제외</label>
+                <input type="checkbox" id="toggle-auto-save" checked>
+                <label for="toggle-auto-save">자동 저장</label>
               </div>
-            </div>
-            
-            <!--
-            <div class="settings-card card">
-              <h2>알림 설정</h2>
-              <div class="form-group checkbox">
-                <input type="checkbox" id="email-notifications" checked>
-                <label for="email-notifications">이메일 알림</label>
-              </div>
-              <div class="form-group checkbox">
-                <input type="checkbox" id="push-notifications" checked>
-                <label for="push-notifications">푸시 알림</label>
-              </div>
-            </div>
-            -->
-            
-            <div class="settings-card card">
-              <h2>데이터 관리</h2>
-              <button class="btn btn-secondary" id="export-data-btn">데이터 내보내기</button>
-              <button class="btn btn-danger" id="delete-account-btn" style="margin-left: 1rem;">계정 삭제</button>
+              
+              <button class="btn btn-primary">설정 저장</button>
             </div>
           </div>
         </div>
@@ -328,189 +306,194 @@
 
   <!-- 루틴 생성 모달 -->
   <div id="routine-modal" class="modal">
-    <div class="modal-content">
+    <div class="modal-content modal-large">
       <div class="modal-header">
-        <h2>학습 루틴 생성</h2>
+        <h2>새 루틴 생성</h2>
         <button class="close-modal">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="routines-container">
-          <div class="routines-list" id="routine-items-container">
-            <ul id="routine-item-list" class="draggable-list" style="padding: 0; list-style: none;"></ul>
-            <button id="add-routine-item" class="btn btn-circle">
-              <i class="ri-add-line"></i>
+        <form id="routine-form">
+          <div class="form-group">
+            <label>루틴 정보</label>
+            <div class="routines-container" id="routine-items-container">
+              <p>아직 루틴 항목이 없습니다. 아래 버튼으로 추가해주세요.</p>
+            </div>
+            <button type="button" id="add-routine-item" class="btn btn-secondary">
+              <i class="ri-add-line"></i> 루틴 항목 추가
             </button>
           </div>
-        </div>
-        
-        <div class="routine-settings card">
-          <h3>일정 설정</h3>
+          
           <div class="form-group">
-            <label for="routine-start-date">시작일</label>
-            <input type="date" id="routine-start-date">
+            <label for="routine-start-date">시작 날짜</label>
+            <input type="date" id="routine-start-date" required>
           </div>
+          
           <div class="form-group">
-            <label for="routine-duration">기간</label>
-          <select id="routine-duration">
-            <option disabled selected hidden>기간 선택</option>
-            <option value="1">1일</option>
-            <option value="2">2일</option>
-            <option value="3">3일</option>
-            <option value="4">4일</option>
-            <option value="5">5일</option>
-            <option value="6">6일</option>
-            <option value="7" selected>7일</option> <!-- 기본값 7일로 설정했다 -->
-            <option value="8">8일</option> <!-- 류찬형 -->
-            <option value="9">9일</option>
-            <option value="10">10일</option>
-            <option value="11">11일</option>
-            <option value="12">12일</option>
-            <option value="13">13일</option>
-            <option value="14">14일</option>
-          </select>
-
+            <label for="routine-duration">기간 (일)</label>
+            <select id="routine-duration" required>
+              <option value="7">1주일</option>
+              <option value="14">2주일</option>
+              <option value="30">1개월</option>
+              <option value="60">2개월</option>
+              <option value="90">3개월</option>
+            </select>
           </div>
-        </div>
+        </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="cancel-routine">취소</button>
-        <button class="btn btn-primary" id="generate-routine">루틴 생성</button>
+        <button type="button" class="btn btn-secondary" onclick="hideModal('routine')">취소</button>
+        <button type="button" id="generate-routine" class="btn btn-primary">루틴 생성</button>
       </div>
     </div>
   </div>
 
-  <!-- 루틴 항목 편집 모달 -->
-<div id="routine-item-modal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2 id="routine-item-title">루틴 항목 <span id="routine-item-number">1</span></h2>
-      <button class="close-modal">&times;</button>
-    </div>  
-    <div class="modal-body">
-      <form id="routine-item-form">
-        <!-- 1. 과목/활동 선택 -->
-        <div class="form-group">
-  <label>항목 유형</label>
-  <div class="subject-type-selector">
-    <div class="radio-group">
-      <input type="radio" id="type-subject" name="subject-type" value="subject" checked>
-      <label for="type-subject">과목</label>
-    </div>
-    <div class="radio-group">
-      <input type="radio" id="type-activity" name="subject-type" value="activity">
-      <label for="type-activity">활동</label>
-    </div>
-  </div>
-</div>
-<!-- ✅ 여기에 과목명 입력 필드 추가 -->
-<div class="form-group">
-  <label for="subject">과목 / 활동명</label>
-  <input type="text" id="subject" placeholder="예: 수학, 단어 암기 등" required>
-</div>
-        <!-- 2. 학습 시간 선택 -->
-        <div class="form-group">
-  <label>학습 시간 설정 방법</label>
-  <div class="time-input-selector">
-    <div class="radio-group">
-      <input type="radio" id="time-direct" name="time-input-type" value="direct" checked>
-      <label for="time-direct">직접 입력</label>
-    </div>
-    <div class="radio-group">
-      <input type="radio" id="time-slider" name="time-input-type" value="slider">
-      <label for="time-slider">슬라이더로 선택</label>
-    </div>
-  </div>
-</div>
-
-        <div class="form-group">
-          <label for="daily-hours">하루 학습 시간</label>
-          <!-- 직접 입력 방식 -->
-          <div id="time-direct-input" class="time-input-method">
-            <input type="number" id="daily-hours" min="0.5" max="12" step="0.5" value="2" placeholder="예: 2">
-            <span class="input-unit">시간</span>
-          </div>
-          <!-- 슬라이더 방식 -->
-          <div id="time-slider-input" class="time-input-method" style="display: none;">
-            <input type="range" id="hours-slider" min="0.5" max="12" step="0.5" value="2">
-            <div class="slider-value">
-              <span id="slider-hours-display">2</span> 시간
+  <!-- 루틴 항목 추가 모달 -->
+  <div id="routine-item-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>루틴 항목 <span id="routine-item-number">1</span> 추가</h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="routine-item-form">
+          <!-- 1. 과목 선택 -->
+          <div class="form-group">
+            <label>과목 종류</label>
+            <div class="subject-type-selector">
+              <div class="radio-group">
+                <input type="radio" id="subject-preset" name="subject-type" value="preset" checked>
+                <label for="subject-preset">기본 과목</label>
+              </div>
+              <div class="radio-group">
+                <input type="radio" id="subject-custom" name="subject-type" value="custom">
+                <label for="subject-custom">직접 입력</label>
+              </div>
             </div>
-            <div class="slider-labels">
-              <span>30분</span>
-              <span>12시간</span>
-            </div>
+            
+            <select id="subject-preset-list" style="margin-top: 0.5rem;">
+              <option value="수학">수학</option>
+              <option value="영어">영어</option>
+              <option value="국어">국어</option>
+              <option value="과학">과학</option>
+              <option value="사회">사회</option>
+              <option value="역사">역사</option>
+              <option value="프로그래밍">프로그래밍</option>
+              <option value="디자인">디자인</option>
+              <option value="음악">음악</option>
+              <option value="미술">미술</option>
+              <option value="체육">체육</option>
+            </select>
+            
+            <input type="text" id="subject-custom-input" placeholder="과목명을 직접 입력하세요" style="display: none; margin-top: 0.5rem;">
           </div>
-        </div>
 
-        <!-- 3. 특정 요일 선택 -->
-        <div class="form-group">
-  <label>특정 요일 선택</label>
-  <div class="days-checkboxes">
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-mon" name="selected-days" value="mon">
-      <label for="day-mon">월</label>
-    </div>
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-tue" name="selected-days" value="tue">
-      <label for="day-tue">화</label>
-    </div>
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-wed" name="selected-days" value="wed">
-      <label for="day-wed">수</label>
-    </div>
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-thu" name="selected-days" value="thu">
-      <label for="day-thu">목</label>
-    </div>
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-fri" name="selected-days" value="fri">
-      <label for="day-fri">금</label>
-    </div>
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-sat" name="selected-days" value="sat">
-      <label for="day-sat">토</label>
-    </div>
-    <div class="day-checkbox">
-      <input type="checkbox" id="day-sun" name="selected-days" value="sun">
-      <label for="day-sun">일</label>
-    </div>
-  </div>
-</div>
+          <!-- 2. 일일 학습 시간 -->
+          <div class="form-group">
+            <label>일일 학습 시간</label>
+            <div class="time-input-selector">
+              <div class="radio-group">
+                <input type="radio" id="time-direct" name="time-input-type" value="direct" checked>
+                <label for="time-direct">직접 입력</label>
+              </div>
+              <div class="radio-group">
+                <input type="radio" id="time-slider" name="time-input-type" value="slider">
+                <label for="time-slider">슬라이더 선택</label>
+              </div>
+            </div>
 
-        <!-- 4. 집중 시간대 (요일별) -->
-        <div class="form-group">
-          <label>집중 시간대 (요일별 설정)</label>
-          <div id="focus-time-container">
-            <div class="focus-time-note">
-              위에서 요일을 선택하면 각 요일별로 집중 시간대를 설정할 수 있습니다.
+            <!-- 직접 입력 방식 -->
+            <div id="time-direct-input" class="time-input-method">
+              <input type="number" id="daily-hours" min="0.5" max="12" step="0.5" value="2" required>
+              <span class="input-unit">시간</span>
+            </div>
+
+            <!-- 슬라이더 입력 방식 -->
+            <div id="time-slider-input" class="time-input-method" style="display: none;">
+              <div class="slider-value">
+                <span id="slider-hours-display">2</span>시간
+              </div>
+              <input type="range" id="hours-slider" min="0.5" max="12" step="0.5" value="2">
+              <div class="slider-labels">
+                <span>0.5시간</span>
+                <span>12시간</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 5. 학습 불가 시간대 (요일별) -->
-        <div class="form-group">
-          <label>학습 불가 시간대 (요일별 설정)</label>
-          <div id="unavailable-time-container">
-            <div class="unavailable-time-note">
-              위에서 요일을 선택하면 각 요일별로 학습 불가 시간대를 설정할 수 있습니다.
+          <!-- 3. 학습 요일 선택 -->
+          <div class="form-group">
+            <label>학습 요일 선택</label>
+            <div class="select-all-days">
+              <button type="button" id="select-all-days" class="btn btn-sm btn-secondary">전체 선택</button>
+              <button type="button" id="select-weekdays" class="btn btn-sm btn-secondary">평일만</button>
+              <button type="button" id="select-weekends" class="btn btn-sm btn-secondary">주말만</button>
+            </div>
+            <div class="days-checkboxes">
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-mon" value="monday" checked>
+                <label for="day-mon">월</label>
+              </div>
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-tue" value="tuesday" checked>
+                <label for="day-tue">화</label>
+              </div>
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-wed" value="wednesday" checked>
+                <label for="day-wed">수</label>
+              </div>
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-thu" value="thursday" checked>
+                <label for="day-thu">목</label>
+              </div>
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-fri" value="friday" checked>
+                <label for="day-fri">금</label>
+              </div>
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-sat" value="saturday">
+                <label for="day-sat">토</label>
+              </div>
+              <div class="day-checkbox">
+                <input type="checkbox" id="day-sun" value="sunday">
+                <label for="day-sun">일</label>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 6. 메모/세부사항 -->
-        <div class="form-group">
-          <label for="notes">메모 / 세부사항</label>
-          <textarea id="notes" rows="4" placeholder="추가 요구사항이나 메모를 입력하세요&#10;예:&#10;- 교재: 개념원리 수학 상&#10;- 목표: 1단원 완료&#10;- 특이사항: 월요일은 학원이 있음"></textarea>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-danger" id="delete-routine-item">삭제</button>
-      <button class="btn btn-secondary" id="cancel-routine-item">취소</button>
-      <button class="btn btn-primary" id="save-routine-item">저장</button>
+          <!-- 4. 집중 시간대 (요일별) -->
+          <div class="form-group">
+            <label>집중 시간대 (요일별 설정)</label>
+            <div id="focus-time-container">
+              <div class="focus-time-note">
+                위에서 요일을 선택하면 각 요일별로 집중 시간대를 설정할 수 있습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. 학습 불가 시간대 (요일별) -->
+          <div class="form-group">
+            <label>학습 불가 시간대 (요일별 설정)</label>
+            <div id="unavailable-time-container">
+              <div class="unavailable-time-note">
+                위에서 요일을 선택하면 각 요일별로 학습 불가 시간대를 설정할 수 있습니다.
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. 메모/세부사항 -->
+          <div class="form-group">
+            <label for="notes">메모 / 세부사항</label>
+            <textarea id="notes" rows="4" placeholder="추가 요구사항이나 메모를 입력하세요&#10;예:&#10;- 교재: 개념원리 수학 상&#10;- 목표: 1단원 완료&#10;- 특이사항: 월요일은 학원이 있음"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="delete-routine-item">삭제</button>
+        <button class="btn btn-secondary" id="cancel-routine-item">취소</button>
+        <button class="btn btn-primary" id="save-routine-item">저장</button>
+      </div>
     </div>
   </div>
-</div>
 
   <!-- 루틴 결과 모달 -->
   <div id="routine-result-modal" class="modal">
@@ -520,30 +503,29 @@
         <button class="close-modal">&times;</button>
       </div>
       <div class="modal-body">
-<div class="tabs">
-  <div class="tab active" data-tab="full-routine">전체 루틴</div>
-  <div class="tab" data-tab="daily-routine">일별 보기</div>
-</div>
+        <div class="tabs">
+          <div class="tab active" data-tab="full-routine">전체 루틴</div>
+          <div class="tab" data-tab="daily-routine">일별 보기</div>
+        </div>
         
-<div class="tab-content">
-  <div class="tab-pane active" id="full-routine">
-    <div id="full-routine-content" class="routine-text"></div>
-    <textarea id="routine-editor" style="display: none; width: 100%; height: 300px;"></textarea> <!-- 류찬형 -->
-    <button id="edit-routine-btn" class="btn btn-secondary" style="margin-top: 10px;">편집</button> <!-- 류찬형 -->
-  </div>
-  <div class="tab-pane" id="daily-routine">
-    <div class="day-selector">
-      <button class="btn btn-icon" id="prev-day"><i class="ri-arrow-left-s-line"></i></button>
-      <span id="current-day-display">1일차</span>
-      <button class="btn btn-icon" id="next-day"><i class="ri-arrow-right-s-line"></i></button>
-    </div>
-    <div id="daily-routine-content" class="routine-text"></div>
-    <div class="edit-controls">
-      <button class="btn btn-secondary" id="edit-daily-routine">일정 수정</button>
-    </div>
-  </div>
-</div>
-
+        <div class="tab-content">
+          <div class="tab-pane active" id="full-routine">
+            <div id="full-routine-content" class="routine-text"></div>
+            <textarea id="routine-editor" style="display: none; width: 100%; height: 300px;"></textarea>
+            <button id="edit-routine-btn" class="btn btn-secondary" style="margin-top: 10px;">편집</button>
+          </div>
+          <div class="tab-pane" id="daily-routine">
+            <div class="day-selector">
+              <button class="btn btn-icon" id="prev-day"><i class="ri-arrow-left-s-line"></i></button>
+              <span id="current-day-display">1일차</span>
+              <button class="btn btn-icon" id="next-day"><i class="ri-arrow-right-s-line"></i></button>
+            </div>
+            <div id="daily-routine-content" class="routine-text"></div>
+            <div class="edit-controls">
+              <button class="btn btn-secondary" id="edit-daily-routine">일정 수정</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" id="regenerate-routine">다시 생성</button>
@@ -562,14 +544,14 @@
       <div class="modal-body">
         <div id="schedule-items-container">
           <!-- 여기에 일정 항목들이 추가됩니다 -->
-           <label for="edit-title">제목</label>
-        <input type="text" id="edit-title" placeholder="예: 루틴 리뷰 및 다음 주 계획" />
+          <label for="edit-title">제목</label>
+          <input type="text" id="edit-title" placeholder="예: 루틴 리뷰 및 다음 주 계획" />
 
-        <label for="edit-time">시간</label>
-        <input type="text" id="edit-time" placeholder="예: 10:00 - 11:00" />
+          <label for="edit-time">시간</label>
+          <input type="text" id="edit-time" placeholder="예: 10:00 - 11:00" />
 
-        <label for="edit-memo">메모</label>
-        <textarea id="edit-memo" rows="3" placeholder="예: 지난 학습을 되돌아보고 다음 주 목표를 계획해보세요."></textarea> <!--류찬형-->
+          <label for="edit-memo">메모</label>
+          <textarea id="edit-memo" rows="3" placeholder="예: 지난 학습을 되돌아보고 다음 주 목표를 계획해보세요."></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -625,11 +607,134 @@
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/list@6.1.17/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.17/locales/ko.global.min.js"></script>
 
-  <!-- 모듈 스크립트로 변경 -->
-  <script type="module" src="js/app.js"></script>
-  <!-- 👇 이거 꼭 아래에 추가 -->
+  <!-- 추가 유틸리티 스크립트 -->
   <script>
-    window.saveScheduleEdit = saveScheduleEdit;
+    // 전역 유틸리티 함수들
+    window.showToast = function(title, message, type = 'info') {
+      console.log(`Toast: ${title} - ${message} (${type})`);
+      // 실제 토스트 구현은 app.js에서
+    };
+    
+    window.hideModal = function(modalName) {
+      const modal = document.getElementById(`${modalName}-modal`);
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    };
+    
+    window.showModal = function(modalName) {
+      const modal = document.getElementById(`${modalName}-modal`);
+      if (modal) {
+        modal.classList.add('active');
+      }
+    };
+
+    // saveScheduleEdit 함수 정의
+    window.saveScheduleEdit = function() {
+      console.log('✅ saveScheduleEdit 함수 호출됨');
+      
+      const titleInput = document.getElementById('edit-title');
+      const timeInput = document.getElementById('edit-time');
+      const memoInput = document.getElementById('edit-memo');
+
+      if (!titleInput || !timeInput) {
+        window.showToast('오류', '제목과 시간을 모두 입력해주세요.', 'error');
+        return;
+      }
+
+      const title = titleInput.value.trim();
+      const time = timeInput.value.trim();
+      const notes = memoInput?.value.trim() || '';
+
+      if (!title || !time.includes('-')) {
+        window.showToast('오류', '시간은 "시작-종료" 형식으로 입력해주세요.', 'error');
+        return;
+      }
+
+      const [startTime, endTime] = time.split('-').map(t => t.trim());
+
+      if (!startTime || !endTime) {
+        window.showToast('오류', '시작 시간과 종료 시간을 모두 입력해주세요.', 'error');
+        return;
+      }
+
+      // 성공 메시지
+      window.showToast('성공', '일정이 수정되었습니다.', 'success');
+      window.hideModal('edit-schedule');
+      
+      console.log('✅ 일정 편집 저장 완료:', { title, startTime, endTime, notes });
+    };
+
+    // DOM 로드 후 기본 이벤트 설정
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🎯 DOM 로드 완료');
+      
+      // 오늘 날짜를 루틴 시작 날짜 기본값으로 설정
+      const today = new Date().toISOString().split('T')[0];
+      const startDateInput = document.getElementById('routine-start-date');
+      if (startDateInput) {
+        startDateInput.value = today;
+      }
+
+      // 모든 모달의 닫기 버튼 이벤트
+      document.querySelectorAll('.close-modal').forEach(closeBtn => {
+        closeBtn.addEventListener('click', (e) => {
+          const modal = e.target.closest('.modal');
+          if (modal) {
+            modal.classList.remove('active');
+          }
+        });
+      });
+
+      // 모달 배경 클릭 시 닫기
+      document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.remove('active');
+          }
+        });
+      });
+
+      // 오늘의 명언 로드
+      const quotes = [
+        "성공은 준비된 자에게 기회가 왔을 때 만들어진다.",
+        "꿈을 이루는 것은 어렵지 않다. 꿈을 꾸는 것이 어려울 뿐이다.",
+        "배움에는 끝이 없다.",
+        "오늘 하지 않으면 내일은 더 바쁘다.",
+        "작은 진전이라도 진전은 진전이다.",
+        "실패는 성공의 어머니다.",
+        "노력은 결코 배신하지 않는다."
+      ];
+      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      const quoteElement = document.getElementById('quote-text');
+      if (quoteElement) {
+        quoteElement.textContent = randomQuote;
+      }
+
+      console.log('✅ 기본 이벤트 설정 완료');
+    });
+  </script>
+
+  <!-- 메인 앱 스크립트 -->
+  <script type="module" src="js/app.js"></script>
+
+  <!-- 호환성을 위한 추가 스크립트 -->
+  <script>
+    // 브라우저 호환성 체크
+    if (!window.fetch) {
+      console.error('❌ 이 브라우저는 지원되지 않습니다. 최신 브라우저를 사용해주세요.');
+    }
+
+    // 에러 핸들링
+    window.addEventListener('error', function(e) {
+      console.error('❌ 전역 에러:', e.error);
+    });
+
+    window.addEventListener('unhandledrejection', function(e) {
+      console.error('❌ Promise 에러:', e.reason);
+    });
+
+    console.log('🚀 AI 학습 루틴 플래너 로드 완료');
   </script>
 </body>
 </html>

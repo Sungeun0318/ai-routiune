@@ -1,5 +1,5 @@
 // auth.js - 인증 관련 기능
-import { showToast } from './utils.js';  // ui.js → utils.js로 변경
+import { showToast } from './ui.js';  // ui.js에서 showToast 가져오기
 
 // 개발 모드 설정
 const DEV_MODE = false; // 백엔드 연결을 위해 false로 설정
