@@ -118,7 +118,7 @@
       <!-- 상단 헤더 -->
       <header class="main-header">
         <div class="user-info">
-          <span id="nickname-display">성은아나자살하고싶어</span>님, 환영합니다! <!-- 류찬형 -->
+          <div id="nickname-display"></div>
         </div>
         <button id="create-routine-btn" class="btn btn-primary">
           <i class="ri-add-line"></i>
@@ -225,8 +225,15 @@
         <!-- 캘린더 페이지 -->
         <div id="calendar-page" class="page">
           <h1>학습 캘린더</h1>
+  
+          <!-- ✅ 저장 버튼 추가 -->
+          <div style="margin-bottom: 10px;">
+            <button id="save-calendar-events" class="btn btn-primary">일정 저장</button>
+          </div>
+
           <div id="calendar"></div>
         </div>
+
 
         <!-- 도움말 페이지 -->
         <div id="help-page" class="page">
@@ -329,11 +336,11 @@
       <div class="modal-body">
         <div class="routines-container">
           <div class="routines-list" id="routine-items-container">
-            <!-- 여기에 루틴 항목들이 추가됩니다 -->
+            <ul id="routine-item-list" class="draggable-list" style="padding: 0; list-style: none;"></ul>
+            <button id="add-routine-item" class="btn btn-circle">
+              <i class="ri-add-line"></i>
+            </button>
           </div>
-          <button id="add-routine-item" class="btn btn-circle">
-            <i class="ri-add-line"></i>
-          </button>
         </div>
         
         <div class="routine-settings card">
@@ -620,5 +627,9 @@
 
   <!-- 모듈 스크립트로 변경 -->
   <script type="module" src="js/app.js"></script>
+  <!-- 👇 이거 꼭 아래에 추가 -->
+  <script>
+    window.saveScheduleEdit = saveScheduleEdit;
+  </script>
 </body>
 </html>

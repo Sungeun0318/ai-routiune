@@ -31,6 +31,7 @@ const focusTimeOptions = [
 
 // 루틴 핸들러 초기화
 export function initRoutineHandlers() {
+  
   // 새 루틴 생성 버튼
   document.getElementById('create-routine-btn').addEventListener('click', () => {
     initRoutineCreation();
@@ -362,6 +363,7 @@ function initRoutineCreation() {
   currentRoutineItems = [];
   document.getElementById('routine-items-container').innerHTML = '';
   document.getElementById('routine-start-date').valueAsDate = new Date();
+  renderRoutineItems(); // ✅ 반드시 필요!
 }
 
 // 루틴 항목 저장
@@ -457,33 +459,90 @@ function validateRoutineItemForm() {
 function renderRoutineItems() {
   const container = document.getElementById('routine-items-container');
   if (!container) return;
-  
-  container.innerHTML = '';
-  
+
+  // 기존 내용 초기화
+  container.innerHTML = `
+    <ul id="routine-item-list" class="draggable-list" style="padding: 0; list-style: none;"></ul>
+  `;
+
+  const list = document.getElementById('routine-item-list');
+
   currentRoutineItems.forEach((item, index) => {
-    const el = document.createElement('div');
-    el.className = 'routine-item';
-    
+    const li = document.createElement('li');
+    li.className = 'routine-item';
+    li.setAttribute('draggable', true);
+    li.dataset.index = index;
+
     const typeText = item.subjectType === 'activity' ? '활동' : '과목';
     const daysText = item.selectedDays ? 
       item.selectedDays.map(day => dayNames[day].charAt(0)).join(', ') : 
       '매일';
-    
-    el.innerHTML = `
+
+    li.innerHTML = `
       <div class="routine-item-content">
         <h3>${item.subject} (${typeText})</h3>
         <p>${item.dailyHours}시간/일, ${daysText}</p>
       </div>
-      <i class="ri-edit-line"></i>
+      <i class="ri-drag-move-line"></i>
     `;
-    
-    el.addEventListener('click', () => {
+
+    // 클릭 시 편집
+    li.addEventListener('click', () => {
       editRoutineItem(index);
     });
-    
-    container.appendChild(el);
+
+    // 드래그 이벤트
+    li.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', index);
+    });
+
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      li.classList.add('drag-over');
+    });
+
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over');
+    });
+
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const draggedIndex = e.dataTransfer.getData('text/plain');
+      const targetIndex = li.dataset.index;
+
+      if (draggedIndex !== targetIndex) {
+        const moved = currentRoutineItems.splice(draggedIndex, 1)[0];
+        currentRoutineItems.splice(targetIndex, 0, moved);
+        renderRoutineItems(); // 순서 재렌더링
+      }
+    });
+
+    list.appendChild(li);
+  });
+
+  // ✅ 추가: 플러스 버튼 DOM 삽입 및 바인딩
+  const addButtonWrapper = document.createElement('div');
+  addButtonWrapper.style.marginTop = '1rem';
+  addButtonWrapper.style.textAlign = 'center';
+  addButtonWrapper.innerHTML = `
+    <button id="add-routine-item" class="btn btn-circle" type="button" title="항목 추가">
+      <i class="ri-add-line"></i>
+    </button>
+  `;
+  container.appendChild(addButtonWrapper);
+
+  document.getElementById('add-routine-item').addEventListener('click', () => {
+    if (currentRoutineItems.length >= 10) {
+      showToast('오류', '최대 10개 항목만 추가할 수 있습니다.', 'error');
+      return;
+    }
+    currentEditingItemIndex = null;
+    document.getElementById('routine-item-number').textContent = currentRoutineItems.length + 1;
+    showModal('routineItem');
+    setTimeout(() => resetRoutineItemForm(), 0);
   });
 }
+
 
 function resetRoutineItemForm() {
   const subjectInput = document.getElementById('subject');
@@ -604,7 +663,14 @@ async function generateRoutine() {
       
       // 루틴 데이터 설정
       generatedRoutine = responseData.recommendation;
-      dailyRoutines = responseData.dailyRoutines;
+      // ✅ 여기에 schedules 초기화 강제 삽입
+      dailyRoutines = (responseData.dailyRoutines || []).map(day => ({
+        ...day,
+        schedules: day.schedules || []
+      }));
+
+      // ✅ 이 아래에 로그 추가
+      console.log('🧾 dailyRoutines after init:', dailyRoutines);
       
       // 결과 표시
       document.getElementById('full-routine-content').textContent = generatedRoutine;
@@ -694,42 +760,66 @@ function renderScheduleItems(schedules) {
   });
 }
 
-// 일정 편집 저장
-function saveScheduleEdit() {
-  if (!dailyRoutines[currentDayIndex] || !dailyRoutines[currentDayIndex].schedules) {
+export function saveScheduleEdit() {
+  console.log("📌 currentDayIndex:", currentDayIndex);
+  console.log("📌 dailyRoutines:", dailyRoutines);
+  console.log("📌 dailyRoutines[currentDayIndex]:", dailyRoutines[currentDayIndex]);
+  console.log("📌 schedules:", dailyRoutines[currentDayIndex]?.schedules);
+  const titleInput = document.getElementById('edit-title');
+  const timeInput = document.getElementById('edit-time');
+  const memoInput = document.getElementById('edit-memo');
+
+  if (!titleInput || !timeInput) {
+    showToast('오류', '제목과 시간을 모두 입력해주세요.', 'error');
     return;
   }
-  
-  const schedules = dailyRoutines[currentDayIndex].schedules;
-  
-  // 수정된 스케줄 정보 가져오기
-  document.querySelectorAll('.schedule-start-time').forEach(input => {
-    const index = parseInt(input.getAttribute('data-index'));
-    if (index < schedules.length) {
-      schedules[index].startTime = input.value;
-    }
-  });
-  
-  document.querySelectorAll('.schedule-end-time').forEach(input => {
-    const index = parseInt(input.getAttribute('data-index'));
-    if (index < schedules.length) {
-      schedules[index].endTime = input.value;
-    }
-  });
-  
-  document.querySelectorAll('.schedule-title').forEach(input => {
-    const index = parseInt(input.getAttribute('data-index'));
-    if (index < schedules.length) {
-      schedules[index].title = input.value;
-    }
-  });
-  
-  // 일별 루틴 컨텐츠 업데이트
+
+  const title = titleInput.value.trim();
+  const time = timeInput.value.trim();
+  const notes = memoInput?.value.trim() || '';
+
+  if (!title || !time.includes('-')) {
+    showToast('오류', '시간은 "시작-종료" 형식으로 입력해주세요.', 'error');
+    return;
+  }
+
+  const [startTime, endTime] = time.split('-').map(t => t.trim());
+
+  if (!startTime || !endTime) {
+    showToast('오류', '시작 시간과 종료 시간을 모두 입력해주세요.', 'error');
+    return;
+  }
+
+  // 대상 schedule 배열
+  const currentDay = dailyRoutines[currentDayIndex];
+  if (!currentDay || !Array.isArray(currentDay.schedules)) {
+    showToast('오류', '수정할 일정이 없습니다.', 'error');
+    return;
+  }
+
+  // 첫 번째 항목만 수정
+  const schedule = currentDay.schedules[0];
+  if (!schedule) {
+    showToast('오류', '수정할 일정이 없습니다.', 'error');
+    return;
+  }
+
+  schedule.title = title;
+  schedule.startTime = startTime;
+  schedule.endTime = endTime;
+  schedule.notes = notes;
+
+  // 정렬 및 반영
   updateDailyRoutineContent();
-  
+  updateDailyRoutineView();
   hideModal('editSchedule');
   showToast('성공', '일정이 수정되었습니다.', 'success');
+
+  // 최신화
+  fetchTodaySchedule();
 }
+
+
 
 // 일별 루틴 컨텐츠 업데이트
 function updateDailyRoutineContent() {
@@ -1007,33 +1097,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const routineViewer = document.getElementById('full-routine-content');
   const routineEditor = document.getElementById('routine-editor');
 
+  let editing = false;
+
   if (editBtn && routineViewer && routineEditor) {
     editBtn.addEventListener('click', () => {
-      // 현재 보기 텍스트를 textarea에 복사
-      routineEditor.value = routineViewer.innerText;
-
-      // 보기 영역 숨기고 textarea 보이게 하기
-      routineViewer.style.display = 'none';
-      routineEditor.style.display = 'block';
-
-      // 버튼 텍스트를 [편집 완료]로 바꾸기
-      editBtn.textContent = '편집 완료';
-
-      // 다시 누르면 편집 종료
-      editBtn.onclick = () => {
-        // textarea 내용 다시 표시
-        routineViewer.innerText = routineEditor.value;
-
-        // textarea 숨기고 보기 영역 다시 보이게
-        routineEditor.style.display = 'none';
+      if (!editing) {
+        // 편집 시작
+        routineEditor.value = routineViewer.innerText;
+        routineViewer.style.display = 'none';
+        routineEditor.style.display = 'block';
+        editBtn.textContent = '편집 완료';
+        editing = true;
+      } else {
+        // ✅ 편집 완료
+        const updatedText = routineEditor.value;
+        routineViewer.innerText = updatedText;
         routineViewer.style.display = 'block';
-
-        // 버튼 텍스트 원상복구
+        routineEditor.style.display = 'none';
         editBtn.textContent = '편집';
-        // 이벤트 다시 설정
-        editBtn.onclick = null;
-      };
+        editing = false;
+
+        // ✅ 수정된 루틴 내용을 반영
+        generatedRoutine = updatedText;
+        console.log('🔁 수정된 전체 루틴 반영됨:', generatedRoutine);
+      }
     });
   }
 });
 
+document.addEventListener('DOMContentLoaded', () => {
+  initRoutineHandlers();
+});
+
+window.saveScheduleEdit = saveScheduleEdit;

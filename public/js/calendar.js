@@ -106,7 +106,8 @@ export function initCalendar() {
     
     // 캘린더 이벤트 로드
     loadCalendarEvents();
-    
+    // ✅ 여기 추가
+    setupSaveButtonHandler();
     return calendar;
     
   } catch (error) {
@@ -457,3 +458,43 @@ window.calendarModule = {
 };
 
 console.log('📅 Calendar module loaded');
+
+// 저장 버튼 핸들러
+function setupSaveButtonHandler() {
+  const saveButton = document.getElementById('save-calendar-events');
+  if (!saveButton) {
+    console.warn('⛔ 저장 버튼을 찾을 수 없습니다.');
+    return;
+  }
+
+  saveButton.addEventListener('click', async () => {
+    try {
+      const events = calendar.getEvents();
+      for (const event of events) {
+        const payload = {
+          id: event.id,
+          title: event.title,
+          start: event.start,
+          end: event.end,
+          extendedProps: event.extendedProps
+        };
+
+        const res = await fetch(`/api/calendar/events/${event.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`Event 저장 실패: ${event.id}`);
+      }
+
+      showToast('성공', '일정이 모두 저장되었습니다.', 'success');
+    } catch (error) {
+      console.error('❌ 저장 실패:', error);
+      showToast('오류', '저장 중 오류 발생', 'error');
+    }
+  });
+}
+

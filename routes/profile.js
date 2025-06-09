@@ -117,4 +117,20 @@ router.delete('/', requireLogin, async (req, res) => {
   }
 });
 
+// 닉네임만 반환하는 라우트 (/api/profile/me)
+router.get('/me', requireLogin, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
+    }
+
+    res.json({ nickname: user.displayName || user.username });
+  } catch (error) {
+    console.error('닉네임 조회 오류:', error);
+    res.status(500).json({ error: '닉네임 조회 중 오류가 발생했습니다' });
+  }
+});
+
+
 module.exports = router;

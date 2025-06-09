@@ -14,6 +14,7 @@ import {
 } from './routine.js';
 import { initCalendar } from './calendar.js';
 import { quotes } from './quotes.js';
+import { saveScheduleEdit } from './routine.js';
 
 // ✅ 앱 초기화 여부 플래그
 let appInitialized = false;
@@ -68,8 +69,11 @@ export function initApp() {
     .then(isLoggedIn => {
       if (isLoggedIn) {
         console.log('✅ 자동 로그인 성공');
-        return fetchUserData();
-      }
+        return Promise.all([
+        fetchUserData(),
+        fetchAndDisplayNickname()  // ✅ 닉네임 표시 호출
+      ]);
+    }
     })
     .catch(error => console.error('❌ Auto-login error:', error));
 
@@ -77,6 +81,31 @@ export function initApp() {
   showRandomQuote();
   
   console.log('✅ 앱 초기화 완료');
+
+
+}
+
+function fetchAndDisplayNickname() {
+  return fetch('/api/profile/me', {
+    credentials: 'include'
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('닉네임 API 응답 실패');
+      return res.json();
+    })
+    .then(data => {
+      if (data.nickname) {
+        const target = document.getElementById('nickname-display');
+        if (target) {
+          const name = data.nickname.endsWith('님') ? data.nickname : `${data.nickname}님`;
+          target.textContent = `${name}, 환영합니다!`;
+          console.log('✅ 닉네임 표시 완료:', name);
+        }
+      }
+    })
+    .catch(err => {
+      console.error('❌ 닉네임 로딩 실패:', err);
+    });
 }
 
 // ✅ DOMContentLoaded 시 단 1회만 실행
@@ -84,6 +113,17 @@ document.addEventListener('DOMContentLoaded', function initAppOnce() {
   document.removeEventListener('DOMContentLoaded', initAppOnce);
   setFetchUserDataFunction(fetchUserData);
   initApp();
+
+  // ✅ 강제 저장 버튼 리스너 추가
+  const saveBtn = document.getElementById('save-schedule-edit');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      console.log('✅ 저장 버튼 클릭됨');
+      saveScheduleEdit();
+    });
+  } else {
+    console.error('❌ 저장 버튼을 찾을 수 없습니다.');
+  }
 });
 
 // ✅ UI 이벤트 연결

@@ -556,6 +556,12 @@ input:focus, select:focus, textarea:focus {
   transition: var(--transition);
 }
 
+.routine-item.drag-over {
+  background-color: #e0f0ff;
+  border-left: 4px dashed #007bff;
+}
+
+
 .routine-item:hover {
   background-color: var(--primary-light);
 }
@@ -1179,4 +1185,17 @@ input:focus, select:focus, textarea:focus {
 .schedule-task progress::-webkit-progress-value {
   background-color: var(--success);
   border-radius: 5px;
+}
+
+.draggable-list li {
+  padding: 10px;
+  margin: 5px 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  cursor: grab;
+}
+
+.draggable-list li.drag-over {
+  background-color: #e0f0ff;
+  border: 1px dashed #007bff;
 }
