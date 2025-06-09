@@ -92,19 +92,35 @@ function initProfileHandlers() {
 // 프로필 데이터 로드
 async function loadProfileData() {
   try {
+    console.log('📄 프로필 데이터 로딩 시작...');
+    
     const response = await fetch('/api/profile', {
+      method: 'GET',
+      credentials: 'include',
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       }
     });
     
+    console.log('🔍 프로필 응답 상태:', response.status);
+    
     if (!response.ok) {
+      if (response.status === 401) {
+        console.log('❌ 인증 오류 - 로그인 페이지로 이동');
+        logout(false);
+        return;
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const profileData = await response.json();
-    updateProfileDisplay(profileData);
+    const result = await response.json();
+    console.log('📄 프로필 데이터:', result);
+    
+    if (result.success && result.user) {
+      updateProfileDisplay(result.user);
+    } else {
+      throw new Error(result.error || '프로필 데이터 로딩 실패');
+    }
     
   } catch (error) {
     console.error('❌ Error loading profile:', error);
@@ -115,12 +131,21 @@ async function loadProfileData() {
 // 프로필 정보 업데이트
 async function updateProfile() {
   try {
+    console.log('✏️ 프로필 업데이트 시작...');
+    
     const formData = {
-      displayName: document.getElementById('profile-display-name').value.trim(),
-      email: document.getElementById('profile-email').value.trim(),
-      currentPassword: document.getElementById('profile-password').value,
-      newPassword: document.getElementById('profile-confirm-password').value
+      displayName: document.getElementById('profile-display-name')?.value?.trim() || '',
+      email: document.getElementById('profile-email')?.value?.trim() || '',
+      currentPassword: document.getElementById('profile-password')?.value || '',
+      newPassword: document.getElementById('profile-confirm-password')?.value || ''
     };
+    
+    console.log('📝 프로필 폼 데이터:', {
+      displayName: formData.displayName,
+      email: formData.email,
+      hasCurrentPassword: !!formData.currentPassword,
+      hasNewPassword: !!formData.newPassword
+    });
     
     // 비밀번호 변경 유효성 검사
     if (formData.newPassword && !formData.currentPassword) {
@@ -135,27 +160,37 @@ async function updateProfile() {
     
     const response = await fetch('/api/profile', {
       method: 'PUT',
+      credentials: 'include',
       headers: {
-        'Authorization': `Bearer ${getAuthToken()}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(formData)
     });
     
+    console.log('🔍 프로필 업데이트 응답:', response.status);
     const result = await response.json();
+    console.log('📄 프로필 업데이트 결과:', result);
     
     if (!response.ok) {
       throw new Error(result.error || '프로필 업데이트 실패');
     }
     
-    showToast('성공', result.message, 'success');
-    
-    // 폼 리셋 (비밀번호 필드만)
-    document.getElementById('profile-password').value = '';
-    document.getElementById('profile-confirm-password').value = '';
-    
-    // 프로필 데이터 새로고침
-    loadProfileData();
+    if (result.success) {
+      showToast('성공', result.message || '프로필이 성공적으로 수정되었습니다.', 'success');
+      
+      // 폼 리셋 (비밀번호 필드만)
+      const passwordField = document.getElementById('profile-password');
+      const confirmPasswordField = document.getElementById('profile-confirm-password');
+      if (passwordField) passwordField.value = '';
+      if (confirmPasswordField) confirmPasswordField.value = '';
+      
+      // 프로필 데이터 새로고침
+      setTimeout(() => {
+        loadProfileData();
+      }, 500);
+    } else {
+      throw new Error(result.error || '프로필 업데이트 실패');
+    }
     
   } catch (error) {
     console.error('❌ Error updating profile:', error);
@@ -165,25 +200,48 @@ async function updateProfile() {
 
 // 프로필 디스플레이 업데이트
 function updateProfileDisplay(profileData) {
-  // 기본 정보 표시
-  const usernameDisplay = document.getElementById('username-display');
-  const profileUsername = document.getElementById('profile-username');
-  const profileJoinDate = document.getElementById('profile-join-date');
-  const profileRoutineCount = document.getElementById('profile-routine-count');
-  const profileCompletedCount = document.getElementById('profile-completed-count');
+  console.log('🖼️ 프로필 디스플레이 업데이트:', profileData);
   
-  if (usernameDisplay) usernameDisplay.textContent = profileData.username;
-  if (profileUsername) profileUsername.textContent = profileData.displayName || profileData.username;
-  if (profileJoinDate) profileJoinDate.textContent = `가입일: ${profileData.joinDate}`;
-  if (profileRoutineCount) profileRoutineCount.textContent = profileData.routineCount || 0;
-  if (profileCompletedCount) profileCompletedCount.textContent = profileData.completedCount || 0;
-  
-  // 폼 필드 채우기
-  const displayNameInput = document.getElementById('profile-display-name');
-  const emailInput = document.getElementById('profile-email');
-  
-  if (displayNameInput) displayNameInput.value = profileData.displayName || profileData.username;
-  if (emailInput) emailInput.value = profileData.email || '';
+  try {
+    // 기본 정보 표시
+    const usernameDisplay = document.getElementById('username-display');
+    const profileUsername = document.getElementById('profile-username');
+    const profileJoinDate = document.getElementById('profile-join-date');
+    const profileRoutineCount = document.getElementById('profile-routine-count');
+    const profileCompletedCount = document.getElementById('profile-completed-count');
+    
+    if (usernameDisplay) {
+      usernameDisplay.textContent = profileData.displayName || profileData.username;
+    }
+    if (profileUsername) {
+      profileUsername.textContent = profileData.displayName || profileData.username;
+    }
+    if (profileJoinDate) {
+      profileJoinDate.textContent = `가입일: ${profileData.joinDate}`;
+    }
+    if (profileRoutineCount) {
+      profileRoutineCount.textContent = profileData.routineCount || 0;
+    }
+    if (profileCompletedCount) {
+      profileCompletedCount.textContent = profileData.completedCount || 0;
+    }
+    
+    // 폼 필드 채우기
+    const displayNameInput = document.getElementById('profile-display-name');
+    const emailInput = document.getElementById('profile-email');
+    
+    if (displayNameInput) {
+      displayNameInput.value = profileData.displayName || profileData.username || '';
+    }
+    if (emailInput) {
+      emailInput.value = profileData.email || '';
+    }
+    
+    console.log('✅ 프로필 디스플레이 업데이트 완료');
+    
+  } catch (error) {
+    console.error('❌ 프로필 디스플레이 업데이트 오류:', error);
+  }
 }
 
 // 앱 화면 표시
