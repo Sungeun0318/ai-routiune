@@ -1,11 +1,8 @@
-// calendar.js - 간단한 버전
+// calendar.js - 캘린더 모듈 (직접 편집 기능 포함)
 
 // 전역 변수
 let calendar;
 let currentEvent = null;
-
-// showModal, hideModal, showToast는 전역에서 사용 가능하도록 설정
-// (app.js에서 window에 등록됨)
 
 // 캘린더 초기화
 export function initCalendar() {
@@ -63,20 +60,78 @@ export function initCalendar() {
       editable: true,
       droppable: true,
       
-      // 이벤트 드래그 처리
-      eventDrop: function(info) {
-        if (window.showToast) {
-          window.showToast('성공', '일정이 변경되었습니다.', 'success');
+      // ✅ 이벤트 드래그 처리 (자동 저장)
+      eventDrop: async function(info) {
+        try {
+          const response = await fetch(`/api/calendar/events/${info.event.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+              title: info.event.title,
+              start: info.event.start.toISOString(),
+              end: info.event.end ? info.event.end.toISOString() : null,
+              extendedProps: info.event.extendedProps
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update event');
+          }
+          
+          if (window.showToast) {
+            window.showToast('성공', '일정이 변경되었습니다.', 'success');
+          }
+          console.log('✅ 이벤트 드래그 변경 저장됨');
+          
+        } catch (error) {
+          console.error('❌ 이벤트 업데이트 오류:', error);
+          if (window.showToast) {
+            window.showToast('오류', '일정 변경 저장 중 오류가 발생했습니다.', 'error');
+          }
+          
+          // 실패 시 원래 위치로 복원
+          info.revert();
         }
-        updateEventOnServer(info.event);
       },
       
-      // 이벤트 크기 조정 처리
-      eventResize: function(info) {
-        if (window.showToast) {
-          window.showToast('성공', '일정이 변경되었습니다.', 'success');
+      // ✅ 이벤트 크기 조정 처리 (자동 저장)
+      eventResize: async function(info) {
+        try {
+          const response = await fetch(`/api/calendar/events/${info.event.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify({
+              title: info.event.title,
+              start: info.event.start.toISOString(),
+              end: info.event.end ? info.event.end.toISOString() : null,
+              extendedProps: info.event.extendedProps
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to update event');
+          }
+          
+          if (window.showToast) {
+            window.showToast('성공', '일정 시간이 변경되었습니다.', 'success');
+          }
+          console.log('✅ 이벤트 크기 변경 저장됨');
+          
+        } catch (error) {
+          console.error('❌ 이벤트 업데이트 오류:', error);
+          if (window.showToast) {
+            window.showToast('오류', '일정 변경 저장 중 오류가 발생했습니다.', 'error');
+          }
+          
+          // 실패 시 원래 크기로 복원
+          info.revert();
         }
-        updateEventOnServer(info.event);
       },
       
       // 날짜 클릭 처리
@@ -106,8 +161,10 @@ export function initCalendar() {
     
     // 캘린더 이벤트 로드
     loadCalendarEvents();
-    // ✅ 여기 추가
+    
+    // ✅ 저장 버튼 핸들러 설정
     setupSaveButtonHandler();
+    
     return calendar;
     
   } catch (error) {
@@ -275,34 +332,57 @@ function initEventHandlers() {
     editBtn.onclick = () => {
       if (currentEvent) {
         if (window.hideModal) window.hideModal('eventDetail');
-        /* if (window.showToast) window.showToast('준비 중', '일정 편집 기능은 준비 중입니다.', 'info'); */ //류찬형
+        // 편집 기능은 드래그 앤 드롭으로 대체
+        if (window.showToast) window.showToast('정보', '이벤트를 드래그해서 시간을 변경하거나 모서리를 드래그해서 지속시간을 조정하세요.', 'info');
       }
     };
   }
   
-  // 이벤트 완료 버튼
+  // ✅ 이벤트 완료 버튼 (서버에 저장)
   const completeBtn = document.getElementById('complete-event');
   if (completeBtn) {
-    completeBtn.onclick = () => {
+    completeBtn.onclick = async () => {
       if (currentEvent) {
         const isCompleted = !!currentEvent.extendedProps?.completed;
         
-        // 상태 변경
-        currentEvent.setExtendedProp('completed', !isCompleted);
-        
-        // 색상 변경
-        if (!isCompleted) {
-          currentEvent.setProp('backgroundColor', '#10b981');
-          currentEvent.setProp('borderColor', '#10b981');
-          if (window.showToast) window.showToast('성공', '일정이 완료되었습니다.', 'success');
-        } else {
-          currentEvent.setProp('backgroundColor', '#4361ee');
-          currentEvent.setProp('borderColor', '#4361ee');
-          if (window.showToast) window.showToast('정보', '일정 완료가 취소되었습니다.', 'info');
+        try {
+          // 서버에 완료 상태 변경 요청
+          const response = await fetch(`/api/calendar/events/${currentEvent.id}/complete`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getAuthToken()}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to toggle completion');
+          }
+          
+          const result = await response.json();
+          
+          // 상태 변경
+          currentEvent.setExtendedProp('completed', result.completed);
+          
+          // 색상 변경
+          if (result.completed) {
+            currentEvent.setProp('backgroundColor', '#10b981');
+            currentEvent.setProp('borderColor', '#10b981');
+            if (window.showToast) window.showToast('성공', '일정이 완료되었습니다.', 'success');
+          } else {
+            currentEvent.setProp('backgroundColor', '#4361ee');
+            currentEvent.setProp('borderColor', '#4361ee');
+            if (window.showToast) window.showToast('정보', '일정 완료가 취소되었습니다.', 'info');
+          }
+          
+          if (window.hideModal) window.hideModal('eventDetail');
+          
+        } catch (error) {
+          console.error('❌ 완료 상태 변경 오류:', error);
+          if (window.showToast) {
+            window.showToast('오류', '완료 상태 변경 중 오류가 발생했습니다.', 'error');
+          }
         }
-        
-        if (window.hideModal) window.hideModal('eventDetail');
-        updateEventOnServer(currentEvent);
       }
     };
   }
@@ -401,6 +481,70 @@ async function deleteEventOnServer(eventId) {
   }
 }
 
+// ✅ 저장 버튼 핸들러 설정
+function setupSaveButtonHandler() {
+  const saveButton = document.getElementById('save-calendar-events');
+  if (!saveButton) {
+    console.warn('⚠️ 캘린더 저장 버튼을 찾을 수 없습니다');
+    return;
+  }
+
+  saveButton.addEventListener('click', async () => {
+    try {
+      if (!window.calendar) {
+        if (window.showToast) {
+          window.showToast('오류', '캘린더가 초기화되지 않았습니다', 'error');
+        }
+        return;
+      }
+
+      const events = window.calendar.getEvents();
+      let savedCount = 0;
+      
+      for (const event of events) {
+        try {
+          const payload = {
+            id: event.id,
+            title: event.title,
+            start: event.start?.toISOString(),
+            end: event.end?.toISOString(),
+            extendedProps: event.extendedProps || {}
+          };
+
+          const response = await fetch(`/api/calendar/events/${event.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${getAuthToken()}`
+            },
+            body: JSON.stringify(payload)
+          });
+
+          if (response.ok) {
+            savedCount++;
+          }
+        } catch (error) {
+          console.error('❌ 개별 이벤트 저장 실패:', event.id, error);
+        }
+      }
+
+      if (window.showToast) {
+        if (savedCount > 0) {
+          window.showToast('성공', `${savedCount}개의 일정이 저장되었습니다`, 'success');
+        } else {
+          window.showToast('정보', '저장할 일정이 없습니다', 'info');
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ 전체 저장 실패:', error);
+      if (window.showToast) {
+        window.showToast('오류', '일정 저장 중 오류가 발생했습니다', 'error');
+      }
+    }
+  });
+}
+
 // 캘린더 새로고침
 export function refreshCalendar() {
   if (calendar) {
@@ -447,6 +591,15 @@ export function getEventsForDate(date) {
   return getEvents(targetDate, nextDay);
 }
 
+// ✅ auth 토큰 가져오기 함수 (없을 경우 대비)
+function getAuthToken() {
+  if (typeof window.getAuthToken === 'function') {
+    return window.getAuthToken();
+  }
+  // 세션 기반이므로 토큰이 없어도 됨
+  return '';
+}
+
 // 모듈을 전역 객체에 할당
 window.calendarModule = {
   initCalendar,
@@ -457,44 +610,9 @@ window.calendarModule = {
   destroyCalendar
 };
 
-console.log('📅 Calendar module loaded');
-
-// 저장 버튼 핸들러
-function setupSaveButtonHandler() {
-  const saveButton = document.getElementById('save-calendar-events');
-  if (!saveButton) {
-    console.warn('⛔ 저장 버튼을 찾을 수 없습니다.');
-    return;
-  }
-
-  saveButton.addEventListener('click', async () => {
-    try {
-      const events = calendar.getEvents();
-      for (const event of events) {
-        const payload = {
-          id: event.id,
-          title: event.title,
-          start: event.start,
-          end: event.end,
-          extendedProps: event.extendedProps
-        };
-
-        const res = await fetch(`/api/calendar/events/${event.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok) throw new Error(`Event 저장 실패: ${event.id}`);
-      }
-
-      showToast('성공', '일정이 모두 저장되었습니다.', 'success');
-    } catch (error) {
-      console.error('❌ 저장 실패:', error);
-      showToast('오류', '저장 중 오류 발생', 'error');
-    }
-  });
-}
-
+console.log('📅 Calendar module loaded with direct editing features');
+console.log('✅ 캘린더 직접 편집 기능:');
+console.log('   - 드래그 앤 드롭으로 시간 변경');
+console.log('   - 모서리 드래그로 지속시간 조정');
+console.log('   - 완료 버튼으로 상태 토글');
+console.log('   - 모든 변경사항 자동 저장');

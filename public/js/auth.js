@@ -1,4 +1,5 @@
-import { showToast, hideApp } from './ui.js';
+// auth.js - 인증 관련 기능들
+import { showToast } from './ui.js';
 
 // 🔥 개발 모드 비활성화 - 실제 백엔드 사용
 const DEV_MODE = false;
@@ -11,10 +12,10 @@ export function setFetchUserDataFunction(fn) {
   fetchUserDataFunction = fn;
 }
 
-// 자동 로그인 확인
-export function checkAutoLogin() {
+// ✅ 인증 상태 확인 함수 추가
+export function checkAuthStatus() {
   return new Promise((resolve) => {
-    console.log('🔍 자동 로그인 확인 중...');
+    console.log('🔍 인증 상태 확인 중...');
     
     if (DEV_MODE) {
       const token = localStorage.getItem('authToken');
@@ -44,16 +45,16 @@ export function checkAutoLogin() {
     .then(response => {
       console.log('🔍 세션 검증 응답:', response.status);
       const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
+      if (response.ok && contentType && contentType.includes('application/json')) {
         return response.json();
       }
-      throw new Error('Invalid response format');
+      throw new Error('Invalid response format or unauthorized');
     })
     .then(data => {
       console.log('✅ 세션 검증 결과:', data);
       if (data.ok && data.user) {
         const displayName = data.user.displayName || data.user.nickname || data.user.username;
-        showApp(displayName); //류찬형
+        showApp(displayName);
         resolve(true);
       } else {
         console.log('❌ 세션 무효, 로그아웃 처리');
@@ -69,11 +70,16 @@ export function checkAutoLogin() {
   });
 }
 
+// 자동 로그인 확인 (checkAuthStatus와 동일한 기능)
+export function checkAutoLogin() {
+  return checkAuthStatus();
+}
+
 // 로그인
 export async function login() {
-  const username = document.getElementById('login-username').value.trim();
-  const password = document.getElementById('login-password').value;
-  const rememberMe = document.getElementById('remember-me').checked;
+  const username = document.getElementById('login-username')?.value?.trim();
+  const password = document.getElementById('login-password')?.value;
+  const rememberMe = document.getElementById('remember-me')?.checked;
   
   if (!username || !password) {
     showToast('오류', '아이디와 비밀번호를 입력해주세요.', 'error');
@@ -123,30 +129,29 @@ export async function login() {
     console.log('📄 로그인 응답 데이터:', data);
     
     if (response.ok && data.ok) {
-  console.log('✅ 로그인 성공');
+      console.log('✅ 로그인 성공');
 
-  // 🔐 토큰 저장 추가
-  const token = data.token;
-  if (token) {
-    if (rememberMe) {
-      localStorage.setItem('authToken', token);
+      // 🔐 토큰 저장 추가
+      const token = data.token;
+      if (token) {
+        if (rememberMe) {
+          localStorage.setItem('authToken', token);
+        } else {
+          sessionStorage.setItem('authToken', token);
+        }
+      }
+
+      showApp({
+        username: data.user?.username || username,
+        nickname: data.user?.nickname || data.user?.username || username
+      });
+
+      if (fetchUserDataFunction) {
+        await fetchUserDataFunction();
+      }
+
+      showToast('성공', '로그인되었습니다.', 'success');
     } else {
-      sessionStorage.setItem('authToken', token);
-    }
-  }
-
-  showApp({
-  username: data.user?.username || username,
-  nickname: data.user?.nickname || data.user?.username || username
-}); //류찬형
-
-
-  if (fetchUserDataFunction) {
-    await fetchUserDataFunction();
-  }
-
-  showToast('성공', '로그인되었습니다.', 'success');
-}else {
       console.log('❌ 로그인 실패:', data.message);
       showToast('오류', data.message || '아이디 또는 비밀번호가 일치하지 않습니다.', 'error');
     }
@@ -158,9 +163,9 @@ export async function login() {
 
 // 회원가입
 export async function register() {
-  const username = document.getElementById('register-username').value.trim();
-  const password = document.getElementById('register-password').value;
-  const confirmPassword = document.getElementById('register-confirm-password').value;
+  const username = document.getElementById('register-username')?.value?.trim();
+  const password = document.getElementById('register-password')?.value;
+  const confirmPassword = document.getElementById('register-confirm-password')?.value;
   
   if (!username || !password) {
     showToast('오류', '아이디와 비밀번호를 입력해주세요.', 'error');
@@ -212,10 +217,9 @@ export async function register() {
       console.log('✅ 회원가입 성공');
       
       showApp({
-  username: data.user.username,
-  nickname: data.user.nickname
-});
- //류찬형
+        username: data.user.username,
+        nickname: data.user.nickname
+      });
 
       if (fetchUserDataFunction) {
         await fetchUserDataFunction();
@@ -284,31 +288,61 @@ export function logout(showNotification = true) {
   });
 }
 
-// 앱 UI 표시
-export function showApp(username, nickname) {
+// ✅ 앱 UI 표시 (수정된 버전)
+export function showApp(userInfo) {
   const loginContainer = document.getElementById('login-container');
   const appContainer = document.getElementById('app-container');
   
   if (loginContainer) loginContainer.style.display = 'none';
   if (appContainer) appContainer.style.display = 'flex';
   
+  // 사용자 정보 처리
+  let username, nickname;
+  if (typeof userInfo === 'string') {
+    username = userInfo;
+    nickname = userInfo;
+  } else if (userInfo && typeof userInfo === 'object') {
+    username = userInfo.username || 'User';
+    nickname = userInfo.nickname || userInfo.username || 'User';
+  } else {
+    username = 'User';
+    nickname = 'User';
+  }
+
   // 사용자 이름 표시
-  const displayName = nickname || username;
+  const usernameDisplay = document.getElementById('username-display');
+  if (usernameDisplay) {
+    usernameDisplay.textContent = nickname;
+  }
 
-const usernameDisplay = document.getElementById('username-display');
-if (usernameDisplay) {
-  usernameDisplay.textContent = displayName;
-}
+  const profileUsername = document.getElementById('profile-username');
+  if (profileUsername) {
+    profileUsername.textContent = nickname;
+  }
 
-const profileUsername = document.getElementById('profile-username');
-if (profileUsername) {
-  profileUsername.textContent = displayName;
-}
+  // 닉네임 표시 (여러 위치)
+  const nicknameDisplays = document.querySelectorAll('.user-nickname');
+  nicknameDisplays.forEach(element => {
+    if (element) {
+      element.textContent = nickname.endsWith('님') ? nickname : `${nickname}님`;
+    }
+  });
 
   console.log('✅ 앱 UI 표시 완료:', username);
 }
 
+// ✅ 앱 UI 숨기기
+export function hideApp() {
+  const loginContainer = document.getElementById('login-container');
+  const appContainer = document.getElementById('app-container');
+  
+  if (appContainer) appContainer.style.display = 'none';
+  if (loginContainer) loginContainer.style.display = 'flex';
+  
+  console.log('✅ 앱 UI 숨김 완료');
+}
+
 // 인증 토큰 가져오기 (세션 기반에서는 사용하지 않음)
 export function getAuthToken() {
-  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
 }
