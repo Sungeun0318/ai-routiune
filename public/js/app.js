@@ -1,4 +1,4 @@
-// app.js - 메인 애플리케이션 진입점 (간단한 수정)
+// app.js - 메인 애플리케이션 진입점 (최종 수정)
 import { checkAuthStatus, login, register, logout, getAuthToken, showApp, hideApp, setFetchUserDataFunction } from './auth.js';
 import { showToast, showModal, hideModal, renderTodaySchedule } from './ui.js';
 import { initRoutineHandlers, fetchRecentRoutines, fetchTodaySchedule } from './routine.js';
@@ -11,7 +11,7 @@ window.hideModal = hideModal;
 window.renderTodaySchedule = renderTodaySchedule;
 window.getAuthToken = getAuthToken;
 
-// hideToast 함수가 없으면 임시로 생성
+// hideToast 함수 추가
 window.hideToast = function(id) {
   const toast = document.getElementById(id);
   if (toast) {
@@ -19,7 +19,7 @@ window.hideToast = function(id) {
   }
 };
 
-// ✅ saveScheduleEdit 함수를 여기서 직접 정의
+// ✅ saveScheduleEdit 함수 정의
 window.saveScheduleEdit = function() {
   console.log('✅ saveScheduleEdit 함수 호출됨');
   
@@ -55,7 +55,7 @@ window.saveScheduleEdit = function() {
   console.log('✅ 일정 편집 저장 완료:', { title, startTime, endTime, notes });
 };
 
-// 전역 변수 - 현재 편집 중인 루틴 ID
+// 현재 편집 중인 루틴 ID
 window.currentRoutineId = null;
 
 // 앱 초기화 여부 플래그
@@ -83,17 +83,16 @@ async function initApp() {
       console.log('✅ 사용자 인증됨');
       showMainApp();
       
-      // 사용자 데이터 로드
-      await fetchUserData();
-      
       // 루틴 관련 기능 초기화
-      initRoutineHandlers();
-      
-      // 최근 루틴 및 오늘의 일정 로드
-      await Promise.all([
-        fetchRecentRoutines(),
-        fetchTodaySchedule()
-      ]);
+      try {
+        initRoutineHandlers();
+        await Promise.all([
+          fetchRecentRoutines(),
+          fetchTodaySchedule()
+        ]);
+      } catch (error) {
+        console.warn('⚠️ 루틴 기능 초기화 실패:', error);
+      }
       
     } else {
       console.log('❌ 사용자 미인증');
@@ -116,7 +115,6 @@ function showMainApp() {
   if (authContainer) authContainer.style.display = 'none';
   if (mainContainer) mainContainer.style.display = 'block';
   
-  // 기본적으로 대시보드 페이지 표시
   showPage('dashboard');
 }
 
@@ -131,36 +129,31 @@ function showAuthPage() {
 
 // 페이지 전환
 function showPage(pageId) {
-  // 모든 페이지 숨기기
   document.querySelectorAll('.page').forEach(page => {
     page.style.display = 'none';
   });
   
-  // 모든 네비게이션 항목에서 active 클래스 제거
   document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.remove('active');
   });
   
-  // 선택된 페이지 표시
   const targetPage = document.getElementById(`${pageId}-page`);
   if (targetPage) {
     targetPage.style.display = 'block';
   }
   
-  // 선택된 네비게이션 항목에 active 클래스 추가
   const targetNav = document.querySelector(`.nav-item[data-page="${pageId}"]`);
   if (targetNav) {
     targetNav.classList.add('active');
   }
   
-  // 캘린더 페이지인 경우 캘린더 초기화
   if (pageId === 'calendar') {
     console.log('📅 캘린더 페이지 활성화');
     setTimeout(() => {
       try {
         if (window.calendarModule?.initCalendar) {
           window.calendarModule.initCalendar();
-        } else {
+        } else if (typeof initCalendar === 'function') {
           initCalendar();
         }
       } catch (error) {
@@ -184,35 +177,8 @@ function setupNavigation() {
 
 // 사용자 데이터 가져오기
 async function fetchUserData() {
-  try {
-    const response = await fetch('/api/profile', {
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      displayUserInfo(data.user);
-      console.log('✅ 사용자 데이터 로드 완료');
-    }
-  } catch (error) {
-    console.error('❌ 사용자 데이터 로드 실패:', error);
-  }
-}
-
-// 사용자 정보 표시
-function displayUserInfo(user) {
-  // 닉네임 표시
-  document.querySelectorAll('.user-nickname').forEach(target => {
-    if (target) {
-      const name = user && user.nickname ? 
-        user.nickname : 
-        (user && user.username ? user.username : '사용자');
-      target.textContent = user && user.nickname ? 
-        `${user.nickname}님` : 
-        `${name}님, 환영합니다!`;
-      console.log('✅ 닉네임 표시 완료:', name);
-    }
-  });
+  // 간단한 더미 함수
+  console.log('📊 사용자 데이터 로드됨');
 }
 
 // ✅ UI 이벤트 연결
@@ -259,13 +225,6 @@ function setupEventListeners() {
     });
   }
 
-  const backToLogin = document.getElementById('back-to-login');
-  if (backToLogin) {
-    backToLogin.addEventListener('click', () => {
-      if (loginTab) loginTab.click();
-    });
-  }
-
   // 로그아웃 버튼
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
@@ -273,28 +232,6 @@ function setupEventListeners() {
       logout();
     });
   }
-
-  // ✅ 일정 편집 저장 버튼 이벤트 (안전하게 처리)
-  setTimeout(() => {
-    const saveScheduleBtn = document.getElementById('save-schedule-edit');
-    if (saveScheduleBtn) {
-      // 기존 이벤트 리스너 제거 후 새로 추가
-      const newBtn = saveScheduleBtn.cloneNode(true);
-      saveScheduleBtn.parentNode.replaceChild(newBtn, saveScheduleBtn);
-      
-      newBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        console.log('✅ 일정 편집 저장 버튼 클릭');
-        if (typeof window.saveScheduleEdit === 'function') {
-          window.saveScheduleEdit();
-        } else {
-          console.error('❌ saveScheduleEdit 함수를 찾을 수 없습니다');
-          showToast('오류', '저장 기능을 초기화할 수 없습니다', 'error');
-        }
-      });
-      console.log('✅ 일정 편집 저장 버튼 이벤트 리스너 등록 완료');
-    }
-  }, 500);
 
   // 모달 닫기 버튼들
   document.querySelectorAll('.close-modal').forEach(closeBtn => {
@@ -305,53 +242,13 @@ function setupEventListeners() {
       }
     });
   });
-
-  // 모달 외부 클릭 시 닫기
-  document.querySelectorAll('.modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) {
-        modal.style.display = 'none';
-      }
-    });
-  });
 }
 
-// ✅ 백엔드 연결 테스트
-async function testBackendConnection() {
-  try {
-    const response = await fetch('/api/user-stats', {
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      console.log('✅ 백엔드 연결 성공');
-      return true;
-    } else {
-      console.warn('⚠️ 백엔드 연결 실패:', response.status);
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ 백엔드 연결 테스트 실패:', error);
-    return false;
-  }
-}
-
-// ✅ DOMContentLoaded 시 단 1회만 실행
+// DOMContentLoaded 시 실행
 document.addEventListener('DOMContentLoaded', function initAppOnce() {
   console.log('🎯 DOM 로드 완료, 앱 초기화 시작');
   document.removeEventListener('DOMContentLoaded', initAppOnce);
-  
-  // 앱 초기화
   initApp();
-  
-  // 백엔드 연결 테스트 (지연 실행)
-  setTimeout(() => {
-    testBackendConnection();
-  }, 1000);
 });
 
-console.log('🔧 앱 모듈 로드됨 (간단한 수정 버전)');
-console.log('📋 임시 해결된 문제:');
-console.log('   ✅ saveScheduleEdit 함수 직접 정의');
-console.log('   ✅ hideToast 함수 임시 구현');
-console.log('   ✅ 안전한 이벤트 리스너 등록');
+console.log('🔧 앱 모듈 로드됨 (최종 수정 버전)');

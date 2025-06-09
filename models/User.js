@@ -9,23 +9,35 @@ const userSchema = new mongoose.Schema({
     minlength: 3,
     maxlength: 20
   },
-  password: {
+  // ✅ 기존 코드에서 사용하는 passwordHash 필드
+  passwordHash: {
     type: String,
     required: true,
     minlength: 6
   },
+  // ✅ 기존 password 필드도 호환성 위해 유지 (선택사항)
+  password: {
+    type: String,
+    minlength: 6
+  },
   nickname: {
     type: String,
-    required: true,
     trim: true,
-    maxlength: 30
+    maxlength: 30,
+    default: function() { return this.username; }
   },
   email: {
     type: String,
     trim: true,
     lowercase: true
   },
-  // 루틴 데이터
+  // ✅ 기존 코드에서 사용하는 lastLogin 필드
+  lastLogin: {
+    type: Date,
+    default: Date.now
+  },
+  
+  // ✅ 루틴 데이터 (기존 코드 호환)
   routines: [{
     id: { type: String, required: true },
     title: { type: String, required: true },
@@ -60,7 +72,7 @@ const userSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
   }],
   
-  // 캘린더 이벤트 데이터
+  // ✅ 캘린더 이벤트 데이터 (기존 코드 호환)
   calendarEvents: [{
     id: { type: String, required: true },
     title: { type: String, required: true },
@@ -75,14 +87,14 @@ const userSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
   }],
   
-  // 사용자 설정
+  // ✅ 사용자 설정 (기존 코드 호환)
   preferences: {
     theme: { type: String, default: 'light' },
     language: { type: String, default: 'ko' },
     notifications: { type: Boolean, default: true }
   },
   
-  // 통계 데이터
+  // ✅ 통계 데이터 (기존 코드 호환)
   stats: {
     totalRoutines: { type: Number, default: 0 },
     completedEvents: { type: Number, default: 0 },
@@ -94,26 +106,26 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// 인덱스 설정
+// ✅ 인덱스 설정 (기존 코드 호환)
 userSchema.index({ username: 1 });
 userSchema.index({ email: 1 });
 userSchema.index({ 'routines.id': 1 });
 userSchema.index({ 'calendarEvents.id': 1 });
 userSchema.index({ 'calendarEvents.start': 1 });
 
-// 가상 필드 - 총 루틴 수
+// ✅ 가상 필드 - 총 루틴 수 (기존 코드 호환)
 userSchema.virtual('routineCount').get(function() {
   return this.routines ? this.routines.length : 0;
 });
 
-// 가상 필드 - 완료된 이벤트 수
+// ✅ 가상 필드 - 완료된 이벤트 수 (기존 코드 호환)
 userSchema.virtual('completedEventCount').get(function() {
   return this.calendarEvents 
     ? this.calendarEvents.filter(event => event.completed).length 
     : 0;
 });
 
-// 가상 필드 - 오늘의 이벤트
+// ✅ 가상 필드 - 오늘의 이벤트 (기존 코드 호환)
 userSchema.virtual('todayEvents').get(function() {
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -127,7 +139,7 @@ userSchema.virtual('todayEvents').get(function() {
     : [];
 });
 
-// 스키마 메서드 - 루틴 추가
+// ✅ 스키마 메서드 - 루틴 추가 (기존 코드 호환)
 userSchema.methods.addRoutine = function(routineData) {
   if (!this.routines) {
     this.routines = [];
@@ -137,7 +149,7 @@ userSchema.methods.addRoutine = function(routineData) {
   return this.save();
 };
 
-// 스키마 메서드 - 이벤트 추가
+// ✅ 스키마 메서드 - 이벤트 추가 (기존 코드 호환)
 userSchema.methods.addEvent = function(eventData) {
   if (!this.calendarEvents) {
     this.calendarEvents = [];
@@ -146,7 +158,7 @@ userSchema.methods.addEvent = function(eventData) {
   return this.save();
 };
 
-// 스키마 메서드 - 이벤트 완료 처리
+// ✅ 스키마 메서드 - 이벤트 완료 처리 (기존 코드 호환)
 userSchema.methods.toggleEventCompletion = function(eventId) {
   const event = this.calendarEvents.find(e => e.id === eventId);
   if (event) {
@@ -162,7 +174,7 @@ userSchema.methods.toggleEventCompletion = function(eventId) {
   return Promise.reject(new Error('이벤트를 찾을 수 없습니다'));
 };
 
-// 스키마 메서드 - 통계 업데이트
+// ✅ 스키마 메서드 - 통계 업데이트 (기존 코드 호환)
 userSchema.methods.updateStats = function() {
   this.stats.totalRoutines = this.routines ? this.routines.length : 0;
   this.stats.completedEvents = this.calendarEvents 
@@ -172,7 +184,7 @@ userSchema.methods.updateStats = function() {
   return this.save();
 };
 
-// 미들웨어 - 저장 전 통계 업데이트
+// ✅ 미들웨어 - 저장 전 통계 업데이트 (기존 코드 호환)
 userSchema.pre('save', function(next) {
   if (this.isModified('routines') || this.isModified('calendarEvents')) {
     this.stats.totalRoutines = this.routines ? this.routines.length : 0;
@@ -184,10 +196,11 @@ userSchema.pre('save', function(next) {
   next();
 });
 
-// JSON 직렬화 시 민감한 정보 제외
+// ✅ JSON 직렬화 시 민감한 정보 제외 (기존 코드 호환)
 userSchema.methods.toJSON = function() {
   const userObject = this.toObject();
   delete userObject.password;
+  delete userObject.passwordHash;
   return userObject;
 };
 

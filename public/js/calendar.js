@@ -1,4 +1,4 @@
-// calendar.js - 캘린더 모듈 (직접 편집 기능 포함)
+// calendar.js - 캘린더 모듈 (드래그 앤 드롭 편집 포함)
 
 // 전역 변수
 let calendar;
@@ -56,7 +56,7 @@ export function initCalendar() {
         hour12: false
       },
       
-      // 편집 가능 설정
+      // ✅ 편집 가능 설정 (드래그 앤 드롭 활성화)
       editable: true,
       droppable: true,
       
