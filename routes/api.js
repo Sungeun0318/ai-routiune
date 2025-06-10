@@ -164,13 +164,24 @@ function generateEnhancedDailyRoutines(profile) {
     }).format(date);
 
     const schedules = generateSmartDaySchedules(addedDays, profile, date);
+    const conflicts = checkTimeOverlap(schedules);
     let content = `${formattedDate} 학습 계획:\n`;
     schedules.forEach(s => {
       content += `\n${s.startTime}-${s.endTime}: ${s.title}`;
       if (s.notes) content += `\n  💡 ${s.notes}`;
     });
 
-    dailyRoutines.push({ day: addedDays + 1, date: formattedDate, content, schedules });
+    if (conflicts.length > 0) {
+    content += '\n\n⚠️ 시간 겹침 경고:\n' + conflicts.join('\n');
+    }
+
+    dailyRoutines.push({ 
+    day: addedDays + 1, 
+    date: formattedDate, 
+    content, 
+    schedules,
+    warnings: conflicts // 이 줄 추가
+    });
     addedDays++;
     dayOffset++;
   }
@@ -180,82 +191,178 @@ function generateEnhancedDailyRoutines(profile) {
 
 function generateSmartDaySchedules(day, profile, date) {
   const schedules = [];
-  const routineItems = profile.routineItems || [
-    { subject: '수학', dailyHours: 2, focusTime: 'forenoon', priority: 'high' },
-    { subject: '영어', dailyHours: 1.5, focusTime: 'afternoon', priority: 'medium' },
-    { subject: '프로그래밍', dailyHours: 2.5, focusTime: 'evening', priority: 'high' }
-  ];
-
+  const routineItems = profile.routineItems || [];
   const dayOfWeek = date.getDay();
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const dayString = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][dayOfWeek];
+  
+  // 해당 요일에 학습할 과목들 필터링
+  const todaySubjects = routineItems.filter(item => 
+    item.selectedDays && item.selectedDays.includes(dayString)
+  );
 
-  if (dayOfWeek === 6) {
-    schedules.push(
-      {
-        startTime: '09:00',
-        endTime: '11:00',
-        title: '📘 복습 및 오답노트 정리',
-        notes: '이번 주 학습 내용을 전체적으로 복습하고 오답노트를 정리해보세요.'
-      },
-      {
-        startTime: '14:00',
-        endTime: '16:00',
-        title: '📝 모의고사 / 실전 연습',
-        notes: '시간 제한 문제풀이로 실력을 점검하고, 시간 관리도 함께 연습해보세요.'
-      }
-    );
-  } else if (dayOfWeek === 0) {
-    schedules.push(
-      {
-        startTime: '10:00',
-        endTime: '11:00',
-        title: '🗂️ 루틴 리뷰 및 다음 주 계획',
-        notes: '지난 학습을 되돌아보고 다음 주 목표를 계획해보세요.'
-      },
-      {
-        startTime: '12:00',
-        endTime: '21:00',
-        title: '🛌 자유 시간 & 휴식',
-        notes: '에너지를 충전하는 시간을 보내세요. 산책이나 가벼운 독서도 좋아요.'
-      }
-    );
-  } else {
-    const timeSlots = ['07:00', '09:00', '13:00', '15:00', '18:00', '20:00'];
-    const focusTimeMapping = {
-      'morning': 0, 'forenoon': 1, 'afternoon': 2,
-      'evening': 3, 'night': 4
-    };
-    const sortedItems = [...routineItems].sort((a, b) => {
-      const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
-      return priorityOrder[b.priority] - priorityOrder[a.priority];
-    });
-
-    sortedItems.forEach((item, index) => {
-      if (index >= timeSlots.length) return;
-      let slotIndex = focusTimeMapping[item.focusTime] || index;
-      slotIndex = Math.min(slotIndex, timeSlots.length - 1);
-
-      const startTime = timeSlots[slotIndex];
-      const duration = Math.ceil(parseFloat(item.dailyHours || 2));
-      const endHour = parseInt(startTime.split(':')[0]) + duration;
-      const endTime = `${String(endHour).padStart(2, '0')}:00`;
-
-      const weekNumber = Math.floor(day / 7) + 1;
-      const activity = getActivityByWeek(item.subject, day % 7, weekNumber);
-
-      schedules.push({
-        startTime,
-        endTime,
-        title: `${item.subject} - ${activity}`,
-        subject: item.subject,
-        notes: getStudyTip(item.subject, activity, false),
-        priority: item.priority
-      });
-    });
-    schedules.sort((a, b) => a.startTime.localeCompare(b.startTime));
+  if (todaySubjects.length === 0) {
+    return schedules;
   }
 
+  // 집중 시간대를 시간으로 변환하는 함수
+  function getFocusTimeRange(focusTime) {
+    const timeRanges = {
+      'morning': { start: 6, end: 9 },
+      'forenoon': { start: 9, end: 12 },
+      'afternoon': { start: 12, end: 18 },
+      'evening': { start: 18, end: 22 },
+      'night': { start: 22, end: 24 }
+    };
+    return timeRanges[focusTime] || timeRanges['forenoon'];
+  }
+
+  // 시간을 decimal로 변환 (예: "14:30" -> 14.5)
+  function timeStringToDecimal(timeStr) {
+    if (!timeStr) return null;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours + minutes / 60;
+  }
+
+  // 불가능한 시간대 확인
+  function isTimeUnavailable(startTime, endTime, unavailableTime) {
+    if (!unavailableTime || !unavailableTime.start || !unavailableTime.end) {
+      return false;
+    }
+    
+    const unavailableStart = timeStringToDecimal(unavailableTime.start);
+    const unavailableEnd = timeStringToDecimal(unavailableTime.end);
+    
+    return (startTime < unavailableEnd && endTime > unavailableStart);
+  }
+
+  // 우선순위에 따라 정렬 (높은 우선순위 먼저)
+  const priorityOrder = { 'high': 3, 'medium': 2, 'low': 1 };
+  todaySubjects.sort((a, b) => {
+    return (priorityOrder[b.priority] || 2) - (priorityOrder[a.priority] || 2);
+  });
+
+  const usedTimeSlots = []; // 이미 사용된 시간대 추적
+  const skippedItems = [];
+
+  todaySubjects.forEach((item, index) => {
+    const hours = parseFloat(item.dailyHours) || 1;
+    
+    // 집중 시간대 가져오기
+    const focusTime = item.focusTimeByDay?.[dayString] || item.focusTime || 'forenoon';
+    const focusRange = getFocusTimeRange(focusTime);
+    
+    // 불가능한 시간대 가져오기
+    const unavailableTime = item.unavailableTimeByDay?.[dayString];
+    
+    let bestStartTime = null;
+    let bestEndTime = null;
+    
+    // 1. 먼저 집중 시간대 내에서 가능한 시간 찾기
+    for (let tryStart = focusRange.start; tryStart <= focusRange.end - hours; tryStart += 0.5) {
+      const tryEnd = tryStart + hours;
+      
+      // 집중 시간대를 벗어나면 중단
+      if (tryEnd > focusRange.end) break;
+      
+      // 불가능한 시간대와 겹치는지 확인
+      if (isTimeUnavailable(tryStart, tryEnd, unavailableTime)) continue;
+      
+      // 이미 사용된 시간대와 겹치는지 확인
+      const hasConflict = usedTimeSlots.some(slot => 
+        (tryStart < slot.end && tryEnd > slot.start)
+      );
+      
+      if (!hasConflict) {
+        bestStartTime = tryStart;
+        bestEndTime = tryEnd;
+        break;
+      }
+    }
+    
+    // 2. 집중 시간대에서 못 찾으면 다른 시간대에서 찾기
+    if (bestStartTime === null) {
+      // 하루 전체 시간대에서 탐색 (6시~22시)
+      for (let tryStart = 6; tryStart <= 22 - hours; tryStart += 0.5) {
+        const tryEnd = tryStart + hours;
+        
+        // 22시 이후는 제외
+        if (tryEnd > 22) break;
+        
+        // 불가능한 시간대와 겹치는지 확인
+        if (isTimeUnavailable(tryStart, tryEnd, unavailableTime)) continue;
+        
+        // 이미 사용된 시간대와 겹치는지 확인
+        const hasConflict = usedTimeSlots.some(slot => 
+          (tryStart < slot.end && tryEnd > slot.start)
+        );
+        
+        if (!hasConflict) {
+          bestStartTime = tryStart;
+          bestEndTime = tryEnd;
+          break;
+        }
+      }
+    }
+    
+    // 3. 시간을 찾았으면 스케줄 추가
+    if (bestStartTime !== null && bestEndTime !== null) {
+      // 사용된 시간대에 추가 (30분 휴식 포함)
+      usedTimeSlots.push({
+        start: bestStartTime,
+        end: bestEndTime + 0.5 // 30분 휴식 추가
+      });
+      
+      const studyTypes = ['개념 학습', '문제 풀이', '복습', '실습', '암기'];
+      const studyType = studyTypes[day % studyTypes.length];
+
+      schedules.push({
+        startTime: formatDecimalToTime(bestStartTime),
+        endTime: formatDecimalToTime(bestEndTime),
+        title: `📖 ${item.subject} - ${studyType}`,
+        subject: item.subject,
+        notes: item.notes || `${item.subject} ${studyType}에 집중하세요.`,
+        focusTime: focusTime,
+        priority: item.priority || 'medium'
+      });
+    } else {
+      // 시간을 찾지 못한 경우
+      skippedItems.push({
+        subject: item.subject,
+        reason: '시간 충돌 또는 불가능한 시간대로 인해 배치할 수 없음'
+      });
+    }
+  });
+
   return schedules;
+}
+
+// 시간 형식 변환 함수 추가
+function formatDecimalToTime(decimal) {
+  const hours = Math.floor(decimal);
+  const minutes = Math.round((decimal % 1) * 60);
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+function checkTimeOverlap(schedules) {
+  const conflicts = [];
+  
+  for (let i = 0; i < schedules.length; i++) {
+    for (let j = i + 1; j < schedules.length; j++) {
+      const schedule1 = schedules[i];
+      const schedule2 = schedules[j];
+      
+      const start1 = parseFloat(schedule1.startTime.replace(':', '.'));
+      const end1 = parseFloat(schedule1.endTime.replace(':', '.'));
+      const start2 = parseFloat(schedule2.startTime.replace(':', '.'));
+      const end2 = parseFloat(schedule2.endTime.replace(':', '.'));
+      
+      if ((start1 < end2) && (start2 < end1)) {
+        conflicts.push(`${schedule1.title}과 ${schedule2.title}의 시간이 겹칩니다`);
+      }
+    }
+  }
+  
+  return conflicts;
 }
 
 function getActivityByWeek(subject, dow, weekNum) {

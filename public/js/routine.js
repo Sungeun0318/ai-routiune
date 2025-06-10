@@ -688,6 +688,10 @@ async function generateRoutine() {
         schedules: day.schedules || []
       }));
 
+      if (responseData.warnings && responseData.warnings.length > 0) {
+      showToast('경고', '일부 시간 겹침이나 불가능한 시간대가 감지되었습니다. 상세 내용을 확인해주세요.', 'warning');
+       }
+
       // ✅ 이 아래에 로그 추가
       console.log('🧾 dailyRoutines after init:', dailyRoutines);
       
@@ -728,6 +732,17 @@ function updateDailyRoutineView() {
   // 이전/다음 버튼 활성화 상태 조정
   document.getElementById('prev-day').disabled = currentDayIndex === 0;
   document.getElementById('next-day').disabled = currentDayIndex === dailyRoutines.length - 1;
+}
+
+const currentDayRoutine = dailyRoutines[currentDayIndex];
+if (currentDayRoutine && currentDayRoutine.warnings && currentDayRoutine.warnings.length > 0) {
+  const warningHtml = `
+    <div class="daily-warnings" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 1rem; margin-bottom: 1rem; border-radius: 4px;">
+      <strong>⚠️ 주의사항:</strong><br>
+      ${currentDayRoutine.warnings.join('<br>')}
+    </div>
+  `;
+  document.getElementById('daily-routine-content').insertAdjacentHTML('afterbegin', warningHtml);
 }
 
 

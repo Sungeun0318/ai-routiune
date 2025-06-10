@@ -6,11 +6,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
-router.get('/today', async (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: '로그인이 필요합니다' });
-  }
-})// ✅ 루틴 생성 API
+
 router.post('/generate', async (req, res) => {
   try {
     if (!req.session.userId) {
