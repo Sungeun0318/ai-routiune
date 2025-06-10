@@ -259,5 +259,38 @@ router.get('/me', async (req, res) => {
   });
 });
 
+// 계정 삭제
+router.delete('/delete-account', async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다' });
+    }
+
+    const userId = req.session.userId;
+    
+    // 사용자 삭제
+    await User.findByIdAndDelete(userId);
+    
+    // 세션 삭제
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('세션 삭제 오류:', err);
+      }
+    });
+
+    console.log(`✅ 계정 삭제 완료: ${userId}`);
+    res.json({ 
+      success: true, 
+      message: '계정이 성공적으로 삭제되었습니다' 
+    });
+
+  } catch (error) {
+    console.error('❌ 계정 삭제 오류:', error);
+    res.status(500).json({ 
+      error: '계정 삭제 중 오류가 발생했습니다' 
+    });
+  }
+});
+
 
 module.exports = router;

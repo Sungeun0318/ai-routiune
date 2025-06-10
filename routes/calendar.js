@@ -447,6 +447,7 @@ router.patch('/events/:eventId/complete', async (req, res) => {
 router.get('/today', async (req, res) => {
   if (!req.session.userId) return res.status(401).json({ success: false });
   const user = await User.findById(req.session.userId);
+  console.log('유저의 calendarEvents:', user.calendarEvents); // ★ 여기
   const today = new Date();
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);

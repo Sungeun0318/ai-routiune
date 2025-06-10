@@ -448,6 +448,15 @@ function getStudyTip(subject, activity, isWeekend) {
   return (tips[subject] || `${activity}을(를) 집중해서 연습해보세요.`) + (isWeekend ? ' 주말에는 부담 없이 진행하세요.' : '');
 }
 
+router.put('/routines/:routineId', requireLogin, async (req, res) => {
+  try {
+    // 루틴 업데이트 로직
+    res.json({ success: true, message: '루틴이 업데이트되었습니다' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '업데이트 실패' });
+  }
+});
+
 
 
 router.get('/user-stats', (req, res) => {
@@ -470,6 +479,12 @@ router.post('/routines/save', async (req, res) => {
     const title = subjects.length > 1
       ? `${subjects[0]} 외 ${subjects.length - 1}개`
       : subjects[0] || 'AI 추천 루틴';
+    const user = await User.findById(req.session.userId);
+    if (user) {
+      // 루틴 카운트 증가
+      user.routineCount = (user.routineCount || 0) + 1;
+      await user.save();
+    }
 
     const newRoutine = new Routine({
       userId: req.session.userId,

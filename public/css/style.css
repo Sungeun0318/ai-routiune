@@ -1381,3 +1381,16 @@ input:focus, select:focus, textarea:focus {
   color: var(--primary);
   background-color: var(--card);
 }
+
+/* ✅ 일정 완료시 흐리게 + 취소선 + 배경색 */
+.schedule-item.completed {
+  opacity: 0.5;
+  text-decoration: line-through;
+  background: #e9ffe6;  /* 연한 초록 배경 */
+}
+
+/* ✅ 완료시 일정 제목에만 추가로 취소선/회색 */
+.schedule-item.completed .title {
+  color: #a0a0a0;
+  text-decoration: line-through;
+}

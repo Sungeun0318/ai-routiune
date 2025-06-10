@@ -73,6 +73,7 @@ app.use('/api/schedule', scheduleRouter); // 스케줄 관련
 app.use('/api/calendar', calendarRouter); // 캘린더 관련 (/api/calendar/events)
 app.use('/api/profile', profileRouter);   // 프로필 관련 (/api/profile)
 app.use('/api/routines', routinesRouter); // 루틴 관련 (/api/routines)
+app.use('/api/auth', require('./routes/auth'));
 
 // 7. CSS 파일 라우트 추가 (문제 해결용)
 app.get('/css/:filename', (req, res) => {

@@ -830,10 +830,10 @@ export async function saveScheduleEdit() {
   // 여기서부터 서버로 PUT 요청!
   // 루틴 ID는 본인 프로젝트에 맞게 전달 (예: window.currentRoutineId 등)
   const routineId = window.currentRoutineId;
-  if (!routineId) {
-    showToast('오류', '루틴 ID를 찾을 수 없습니다.', 'error');
-    return;
-  }
+if (!routineId) {
+  // 서버 저장 없이 로컬만 업데이트
+  return;
+}
 
   try {
     const res = await fetch(`/api/routines/${routineId}`, {
@@ -846,14 +846,14 @@ export async function saveScheduleEdit() {
     });
     const result = await res.json();
     if (result.success) {
-      updateDailyRoutineContent();  // local 반영
-      updateDailyRoutineView();     // local 반영
-      hideModal('editSchedule');
-      showToast('성공', '일정이 수정되었습니다.', 'success');
-      fetchTodaySchedule();         // 최신화
-    } else {
-      showToast('오류', result.message || '수정 실패', 'error');
-    }
+      updateDailyRoutineContent();
+  updateDailyRoutineView();
+  hideModal('editSchedule');
+  showToast('성공', '일정이 수정되었습니다.', 'success'); // 이 줄 추가
+  fetchTodaySchedule();
+} else {
+  showToast('오류', result.message || '수정 실패', 'error');
+}
   } catch (e) {
     showToast('오류', '서버와의 통신 중 오류가 발생했습니다.', 'error');
   }
@@ -870,7 +870,7 @@ export async function saveScheduleEdit() {
   showToast('성공', '일정이 수정되었습니다.', 'success');
 
   // 최신화
-  fetchTodaySchedule();
+
 
 
 
@@ -1006,7 +1006,7 @@ function saveRoutineToCalendar() {
       showToast('성공', '루틴이 캘린더에 저장되었습니다.', 'success');
       
       // 오늘의 일정 새로고침
-      fetchTodaySchedule();
+      // fetchTodaySchedule();
       
     } catch (error) {
       console.error('❌ Error saving to server:', error);

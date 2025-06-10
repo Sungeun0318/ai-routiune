@@ -460,6 +460,8 @@ window.calendarModule = {
 console.log('📅 Calendar module loaded');
 
 // 저장 버튼 핸들러
+// 저장 버튼 핸들러
+// 기존 setupSaveButtonHandler 함수를 찾아서 이렇게 수정
 function setupSaveButtonHandler() {
   const saveButton = document.getElementById('save-calendar-events');
   if (!saveButton) {
@@ -467,9 +469,14 @@ function setupSaveButtonHandler() {
     return;
   }
 
-  saveButton.addEventListener('click', async () => {
+  // 기존 이벤트 리스너 제거
+  saveButton.removeEventListener('click', saveButton._clickHandler);
+  
+  saveButton._clickHandler = async () => {
     try {
       const events = calendar.getEvents();
+      let savedCount = 0;
+      
       for (const event of events) {
         const payload = {
           id: event.id,
@@ -487,14 +494,20 @@ function setupSaveButtonHandler() {
           body: JSON.stringify(payload)
         });
 
-        if (!res.ok) throw new Error(`Event 저장 실패: ${event.id}`);
+        if (res.ok) savedCount++;
       }
 
-      showToast('성공', '일정이 모두 저장되었습니다.', 'success');
+      // 한 번만 토스트 표시
+      if (savedCount > 0) {
+        showToast('성공', `${savedCount}개의 일정이 저장되었습니다.`, 'success');
+      }
+      
     } catch (error) {
       console.error('❌ 저장 실패:', error);
-      showToast('오류', '저장 중 오류 발생', 'error');
+      showToast('오류', '저장 중 오류가 발생했습니다.', 'error');
     }
-  });
+  };
+  
+  saveButton.addEventListener('click', saveButton._clickHandler);
 }
 

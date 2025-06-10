@@ -466,71 +466,78 @@ export function renderTodaySchedule(schedule, containerId = 'today-schedule-list
   ul.className = 'schedule-list';
 
   schedule.forEach(item => {
-    const li = document.createElement('li');
-    li.className = 'schedule-item';
+  const li = document.createElement('li');
+  li.className = 'schedule-item';
+  if (item.completed) {
+    li.classList.add('completed'); // ✅ 완료시 클래스 추가!
+  }
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = item.completed;
+  checkbox.setAttribute('data-event-id', item.id);
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.checked = item.completed;
-    checkbox.setAttribute('data-event-id', item.id);
+  // ✅ 시간 표시 div (변수 중복/오타 수정)
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'schedule-time';
+  
+  const startTime = new Date(item.start); 
+  const timeStr = startTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+  // => "09:00"처럼 나옴
 
-    // 체크 상태가 바뀌면 서버에 업데이트 요청
-    checkbox.addEventListener('change', async () => {
+  timeDiv.textContent = timeStr;  // 이걸로 바꿔줘야 시간 뜸!
+
+  // 체크 상태가 바뀌면 서버에 업데이트 요청
+  checkbox.addEventListener('change', async () => {
+    item.completed = checkbox.checked;
+    updateOverallProgress(schedule);
+    
+    try {
+      await fetch(`/api/calendar/events/${item.id}/complete`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // 캘린더도 새로고침 (있는 경우)
+      if (window.calendarModule?.refreshCalendar) {
+        window.calendarModule.refreshCalendar();
+      }
+    } catch (error) {
+      console.error('❌ Error updating completion status:', error);
+      // 에러 시 체크박스 원래 상태로 되돌리기
+      checkbox.checked = !checkbox.checked;
       item.completed = checkbox.checked;
       updateOverallProgress(schedule);
-      
-      // 서버에 완료 상태 업데이트
-      try {
-        await fetch(`/api/calendar/events/${item.id}/complete`, {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${getAuthToken()}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        // 캘린더도 새로고침 (있는 경우)
-        if (window.calendarModule?.refreshCalendar) {
-          window.calendarModule.refreshCalendar();
-        }
-        
-      } catch (error) {
-        console.error('❌ Error updating completion status:', error);
-        // 에러 시 체크박스 원래 상태로 되돌리기
-        checkbox.checked = !checkbox.checked;
-        item.completed = checkbox.checked;
-        updateOverallProgress(schedule);
-      }
-    });
-
-    const timeDiv = document.createElement('div');
-    timeDiv.className = 'schedule-time';
-    timeDiv.textContent = item.time;
-
-    const taskDiv = document.createElement('div');
-    taskDiv.className = 'schedule-task';
-
-    const titleDiv = document.createElement('div');
-    titleDiv.className = 'title';
-    titleDiv.textContent = item.title;
-
-    // 과목 정보가 있으면 표시
-    if (item.subject) {
-      const subjectDiv = document.createElement('div');
-      subjectDiv.className = 'subject';
-      subjectDiv.textContent = item.subject;
-      subjectDiv.style.fontSize = '0.8rem';
-      subjectDiv.style.color = 'var(--text-light)';
-      taskDiv.appendChild(subjectDiv);
     }
-
-    taskDiv.appendChild(titleDiv);
-    li.appendChild(checkbox);
-    li.appendChild(timeDiv);
-    li.appendChild(taskDiv);
-
-    ul.appendChild(li);
   });
+
+  const taskDiv = document.createElement('div');
+  taskDiv.className = 'schedule-task';
+
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'title';
+  titleDiv.textContent = item.title;
+
+  // 과목 정보가 있으면 표시
+  if (item.subject) {
+    const subjectDiv = document.createElement('div');
+    subjectDiv.className = 'subject';
+    subjectDiv.textContent = item.subject;
+    subjectDiv.style.fontSize = '0.8rem';
+    subjectDiv.style.color = 'var(--text-light)';
+    taskDiv.appendChild(subjectDiv);
+  }
+
+  taskDiv.appendChild(titleDiv);
+  li.appendChild(checkbox);
+  li.appendChild(timeDiv); // ✅ 시간도 li에 추가
+  li.appendChild(taskDiv);
+
+  ul.appendChild(li);
+});
+
 
   container.appendChild(ul);
 
@@ -605,6 +612,10 @@ export async function fetchRecentRoutines() {
 
 // 류찬형
 document.addEventListener('DOMContentLoaded', () => {
+  // 일정 수정 버튼 숨기기 (여기 추가!)
+  const editDailyBtn = document.getElementById('edit-daily-routine');
+  if (editDailyBtn) editDailyBtn.style.display = 'none';
+
   const editBtn = document.getElementById('edit-event');
   const editModal = document.getElementById('edit-schedule-modal');
 

@@ -116,6 +116,13 @@ document.addEventListener('DOMContentLoaded', function initAppOnce() {
   setFetchUserDataFunction(fetchUserData);
   initApp();
 
+  const deleteAccountBtn = document.getElementById('delete-account-btn');
+  if (deleteAccountBtn) {
+  // 기존 이벤트 리스너 제거 후 새로 등록
+  deleteAccountBtn.removeEventListener('click', deleteAccount);
+  deleteAccountBtn.addEventListener('click', deleteAccount);
+}
+
   // ✅ 강제 저장 버튼 리스너 추가
   const saveBtn = document.getElementById('save-schedule-edit');
   if (saveBtn) {
@@ -272,6 +279,64 @@ export async function generateAIRoutine(profileData) {
     throw error;
   }
 }
+
+// 계정 삭제 함수
+async function deleteAccount() {
+  // 확인 대화상자
+  const confirmDelete = confirm(
+    '정말로 계정을 삭제하시겠습니까?\n\n' +
+    '⚠️ 주의: 이 작업은 되돌릴 수 없습니다.\n' +
+    '- 모든 루틴과 일정이 삭제됩니다\n' +
+    '- 계정 복구가 불가능합니다\n\n' +
+    '계속 진행하시려면 확인을 클릭하세요.'
+  );
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  // 한 번 더 확인
+  const finalConfirm = confirm(
+    '마지막 확인입니다.\n정말로 계정을 삭제하시겠습니까?'
+  );
+
+  if (!finalConfirm) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/auth/delete-account', {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      alert('계정이 성공적으로 삭제되었습니다.\n메인 페이지로 이동합니다.');
+      
+      // 로컬 스토리지 정리
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // 메인 페이지로 리다이렉트
+      window.location.href = '/';
+      
+    } else {
+      throw new Error(data.error || '계정 삭제에 실패했습니다');
+    }
+
+  } catch (error) {
+    console.error('❌ 계정 삭제 오류:', error);
+    alert('계정 삭제 중 오류가 발생했습니다: ' + error.message);
+  }
+}
+
+// 전역 함수로 등록
+window.deleteAccount = deleteAccount;
 
 // ✅ 글로벌 함수 등록
 window.initCalendar = initCalendar;

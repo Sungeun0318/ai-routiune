@@ -105,7 +105,6 @@ router.post('/complete/:eventId', requireLogin, async (req, res) => {
     res.json({ 
       success: true,
       completed: isCompleted,
-      message: `일정이 ${isCompleted ? '완료' : '미완료'}로 변경되었습니다`
     });
   } catch (error) {
     console.error('❌ Toggle schedule completion error:', error);
@@ -139,7 +138,6 @@ router.patch('/events/:eventId/complete', requireLogin, async (req, res) => {
     res.json({ 
       success: true,
       completed: isCompleted,
-      message: `이벤트가 ${isCompleted ? '완료' : '미완료'}로 변경되었습니다`
     });
   } catch (error) {
     console.error('❌ Toggle event completion error:', error);
@@ -328,7 +326,6 @@ router.put('/:eventId', requireLogin, async (req, res) => {
     res.json({ 
       success: true, 
       event: user.calendarEvents[eventIndex],
-      message: '일정이 성공적으로 수정되었습니다'
     });
   } catch (error) {
     console.error('❌ Update schedule error:', error);
