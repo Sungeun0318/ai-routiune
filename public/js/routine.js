@@ -1,9 +1,6 @@
-// ====================================
-// 루틴 관련 기능들 - 기존 구조 유지하며 오류 수정
-// ====================================
-
-import { authenticatedFetch } from './auth.js';
-import { showToast, showModal, hideModal, renderTodaySchedule, showLoading, hideLoading, showConfirm } from './ui.js';
+// 루틴 관련 기능들 - 백엔드 연동 버전
+import { getAuthToken } from './auth.js';
+import { showToast, showModal, hideModal, renderTodaySchedule } from './ui.js';
 
 // 전역 상태 변수
 let currentRoutineItems = [];
@@ -11,10 +8,6 @@ let currentEditingItemIndex = null;
 let generatedRoutine = null;
 let dailyRoutines = [];
 let currentDayIndex = 0;
-
-// 루틴 편집 관련 변수
-let isEditingRoutine = false;
-let originalRoutineContent = '';
 
 // 요일 한국어 매핑
 const dayNames = {
@@ -36,245 +29,216 @@ const focusTimeOptions = [
   { value: 'night', text: '밤 (22-2시)' }
 ];
 
-// ✅ 루틴 핸들러 초기화
+// 루틴 핸들러 초기화
 export function initRoutineHandlers() {
-  console.log('🎯 루틴 핸들러 초기화 중...');
   
   // 새 루틴 생성 버튼
-  const createRoutineBtn = document.getElementById('create-routine-btn');
-  if (createRoutineBtn) {
-    createRoutineBtn.addEventListener('click', () => {
-      console.log('🎯 새 루틴 생성 버튼 클릭');
-      initRoutineCreation();
-      showModal('routine');
-    });
-  }
+  document.getElementById('create-routine-btn').addEventListener('click', () => {
+    initRoutineCreation();
+    showModal('routine');
+  });
   
   // 루틴 항목 추가 버튼
-  const addRoutineItemBtn = document.getElementById('add-routine-item');
-  if (addRoutineItemBtn) {
-    addRoutineItemBtn.addEventListener('click', () => {
-      if (currentRoutineItems.length >= 10) {
-        showToast('오류', '최대 10개의 항목만 추가할 수 있습니다.', 'error');
-        return;
-      }
-      
-      currentEditingItemIndex = null;
-      const itemNumber = document.getElementById('routine-item-number');
-      if (itemNumber) {
-        itemNumber.textContent = currentRoutineItems.length + 1;
-      }
-      
+  document.getElementById('add-routine-item').addEventListener('click', () => {
+    if (currentRoutineItems.length >= 10) {
+      showToast('오류', '최대 10개의 항목만 추가할 수 있습니다.', 'error');
+      return;
+    }
+    
+    currentEditingItemIndex = null;
+    document.getElementById('routine-item-number').textContent = currentRoutineItems.length + 1;
+    showModal('routineItem');
+    
+    setTimeout(() => {
       resetRoutineItemForm();
-      showModal('routineItem');
-    });
-  }
+    }, 0);
+  });
   
   // 루틴 항목 저장 버튼
-  const saveRoutineItemBtn = document.getElementById('save-routine-item');
-  if (saveRoutineItemBtn) {
-    saveRoutineItemBtn.addEventListener('click', () => {
-      saveRoutineItem();
-    });
-  }
+  document.getElementById('save-routine-item').addEventListener('click', () => {
+    saveRoutineItem();
+  });
   
   // 루틴 항목 취소 버튼
-  const cancelRoutineItemBtn = document.getElementById('cancel-routine-item');
-  if (cancelRoutineItemBtn) {
-    cancelRoutineItemBtn.addEventListener('click', () => {
-      hideModal('routineItem');
-    });
-  }
+  document.getElementById('cancel-routine-item').addEventListener('click', () => {
+    hideModal('routineItem');
+  });
   
-  // 루틴 항목 삭제 버튼 (편집 중일 때만 표시)
-  const deleteRoutineItemBtn = document.getElementById('delete-routine-item');
-  if (deleteRoutineItemBtn) {
-    deleteRoutineItemBtn.addEventListener('click', () => {
-      if (currentEditingItemIndex !== null) {
-        showConfirm(
-          '항목 삭제',
-          '이 루틴 항목을 삭제하시겠습니까?',
-          () => {
-            currentRoutineItems.splice(currentEditingItemIndex, 1);
-            renderRoutineItems();
-            hideModal('routineItem');
-            showToast('성공', '루틴 항목이 삭제되었습니다.', 'success');
-          }
-        );
-      }
-    });
-  }
+  // 루틴 항목 삭제 버튼
+  document.getElementById('delete-routine-item').addEventListener('click', () => {
+    if (currentEditingItemIndex !== null) {
+      currentRoutineItems.splice(currentEditingItemIndex, 1);
+      renderRoutineItems();
+      hideModal('routineItem');
+    }
+  });
   
   // 루틴 생성 취소 버튼
-  const cancelRoutineBtn = document.getElementById('cancel-routine');
-  if (cancelRoutineBtn) {
-    cancelRoutineBtn.addEventListener('click', () => {
-      showConfirm(
-        '루틴 생성 취소',
-        '루틴 생성을 취소하시겠습니까? 입력한 내용이 모두 사라집니다.',
-        () => {
-          hideModal('routine');
-          initRoutineCreation();
-        }
-      );
-    });
-  }
+  document.getElementById('cancel-routine').addEventListener('click', () => {
+    hideModal('routine');
+  });
   
   // 루틴 생성 버튼
-  const generateRoutineBtn = document.getElementById('generate-routine');
-  if (generateRoutineBtn) {
-    generateRoutineBtn.addEventListener('click', async () => {
-      await generateRoutine();
-    });
-  }
+  document.getElementById('generate-routine').addEventListener('click', () => {
+    const generateButton = document.getElementById('generate-routine');
+    generateButton.disabled = true;
+    
+    if (currentRoutineItems.length === 0) {
+      showToast('오류', '최소 1개 이상의 항목을 추가해주세요.', 'error');
+      generateButton.disabled = false;
+      return;
+    }
+    generatedRoutine = null;
+    dailyRoutines = [];
+    currentDayIndex = 0;
 
-  // DOM 이벤트 설정
-  setupDOMEventListeners();
+    generateRoutine();
+  });
   
-  console.log('✅ 루틴 핸들러 초기화 완료');
+  // 이전 날 버튼
+  document.getElementById('prev-day').addEventListener('click', () => {
+    if (currentDayIndex > 0) {
+      currentDayIndex--;
+      updateDailyRoutineView();
+    }
+  });
+  
+  // 다음 날 버튼
+  document.getElementById('next-day').addEventListener('click', () => {
+    if (currentDayIndex < dailyRoutines.length - 1) {
+      currentDayIndex++;
+      updateDailyRoutineView();
+    }
+  });
+  
+  // 일일 루틴 편집 버튼
+  document.getElementById('edit-daily-routine').addEventListener('click', () => {
+    showEditScheduleModal();
+  });
+  
+  // 일정 편집 저장 버튼
+  document.getElementById('save-schedule-edit').addEventListener('click', () => {
+    saveScheduleEdit();
+  });
+  
+  // 일정 편집 취소 버튼
+  document.getElementById('cancel-schedule-edit').addEventListener('click', () => {
+    hideModal('editSchedule');
+  });
+  
+  // 루틴 다시 생성 버튼
+  document.getElementById('regenerate-routine').addEventListener('click', () => {
+    generateRoutine();
+  });
+  
+  // 캘린더에 저장 버튼
+  document.getElementById('save-to-calendar').addEventListener('click', () => {
+    saveRoutineToCalendar();
+  });
+
+  // 루틴 항목 모달 초기화
+  initRoutineItemModal();
 }
 
-// ✅ DOM 이벤트 리스너 설정
-function setupDOMEventListeners() {
-  // 슬라이더 및 직접 입력 동기화
-  const hoursSlider = document.getElementById('hours-slider');
-  const hoursInput = document.getElementById('daily-hours');
+// 루틴 항목 모달 초기화
+function initRoutineItemModal() {
+  // 시간 입력 방식 변경 이벤트
+  document.addEventListener('change', function(e) {
+    if (e.target.name === 'time-input-type') {
+      toggleTimeInputMethod();
+    }
+  });
   
-  if (hoursSlider) {
-    hoursSlider.addEventListener('input', function() {
+  // 슬라이더 값 변경 이벤트
+  document.addEventListener('input', function(e) {
+    if (e.target.id === 'hours-slider') {
       updateSliderDisplay();
-      if (hoursInput) {
-        hoursInput.value = this.value;
-      }
-    });
-  }
-
-  if (hoursInput) {
-    hoursInput.addEventListener('input', function() {
-      if (hoursSlider) {
-        hoursSlider.value = this.value;
-        updateSliderDisplay();
-      }
-    });
-  }
-
-  // 과목 선택 라디오 버튼 이벤트
-  const subjectTypeRadios = document.querySelectorAll('input[name="subject-type"]');
-  subjectTypeRadios.forEach(radio => {
-    radio.addEventListener('change', function() {
-      const presetSelect = document.getElementById('subject-preset-list');
-      const customInput = document.getElementById('subject-custom-input');
-      
-      if (this.value === 'preset') {
-        if (presetSelect) presetSelect.style.display = 'block';
-        if (customInput) customInput.style.display = 'none';
-      } else {
-        if (presetSelect) presetSelect.style.display = 'none';
-        if (customInput) customInput.style.display = 'block';
-      }
-    });
+    }
+    if (e.target.id === 'daily-hours') {
+      syncInputWithSlider();
+    }
   });
-
+  
+  document.addEventListener('change', function(e) {
+    if (e.target.id === 'hours-slider') {
+      syncSliderWithInput();
+    }
+  });
+  
   // 요일 선택 변경 이벤트
-  const dayCheckboxes = document.querySelectorAll('.day-checkbox input[type="checkbox"]');
-  dayCheckboxes.forEach(checkbox => {
-    checkbox.addEventListener('change', updateTimeSettings);
+  document.addEventListener('change', function(e) {
+    if (e.target.matches('.day-checkbox input[type="checkbox"]')) {
+      updateDaySpecificSettings();
+    }
   });
-
-  // 전체 선택 버튼 이벤트
-  const selectAllDaysBtn = document.getElementById('select-all-days');
-  const selectWeekdaysBtn = document.getElementById('select-weekdays');  
-  const selectWeekendsBtn = document.getElementById('select-weekends');
-
-  if (selectAllDaysBtn) {
-    selectAllDaysBtn.addEventListener('click', () => {
-      dayCheckboxes.forEach(cb => cb.checked = true);
-      updateTimeSettings();
-    });
-  }
-
-  if (selectWeekdaysBtn) {
-    selectWeekdaysBtn.addEventListener('click', () => {
-      dayCheckboxes.forEach(cb => {
-        cb.checked = ['mon', 'tue', 'wed', 'thu', 'fri'].includes(cb.value);
-      });
-      updateTimeSettings();
-    });
-  }
-
-  if (selectWeekendsBtn) {
-    selectWeekendsBtn.addEventListener('click', () => {
-      dayCheckboxes.forEach(cb => {
-        cb.checked = ['sat', 'sun'].includes(cb.value);
-      });
-      updateTimeSettings();
-    });
-  }
 }
 
-// ✅ 과목명 가져오기 함수
-function getSubjectName() {
-  const subjectType = document.querySelector('input[name="subject-type"]:checked')?.value;
+// 시간 입력 방식 토글
+function toggleTimeInputMethod() {
+  const selectedType = document.querySelector('input[name="time-input-type"]:checked')?.value;
+  const directInput = document.getElementById('time-direct-input');
+  const sliderInput = document.getElementById('time-slider-input');
   
-  if (subjectType === 'preset') {
-    const presetSelect = document.getElementById('subject-preset-list');
-    return presetSelect?.value || '';
+  if (!directInput || !sliderInput) return;
+  
+  if (selectedType === 'direct') {
+    directInput.style.display = 'flex';
+    sliderInput.style.display = 'none';
   } else {
-    const customInput = document.getElementById('subject-custom-input');
-    return customInput?.value?.trim() || '';
+    directInput.style.display = 'none';
+    sliderInput.style.display = 'flex';
+    syncInputWithSlider();
   }
 }
 
-// ✅ 과목명 설정 함수
-function setSubjectName(subject) {
-  const presetSelect = document.getElementById('subject-preset-list');
-  const customInput = document.getElementById('subject-custom-input');
-  const presetRadio = document.getElementById('subject-preset');
-  const customRadio = document.getElementById('subject-custom');
-  
-  // 기본 과목 목록에 있는지 확인
-  const presetOptions = Array.from(presetSelect?.options || []).map(opt => opt.value);
-  
-  if (presetOptions.includes(subject)) {
-    // 기본 과목인 경우
-    if (presetRadio) presetRadio.checked = true;
-    if (customRadio) customRadio.checked = false;
-    if (presetSelect) {
-      presetSelect.value = subject;
-      presetSelect.style.display = 'block';
-    }
-    if (customInput) customInput.style.display = 'none';
-  } else {
-    // 사용자 정의 과목인 경우
-    if (customRadio) customRadio.checked = true;
-    if (presetRadio) presetRadio.checked = false;
-    if (customInput) {
-      customInput.value = subject;
-      customInput.style.display = 'block';
-    }
-    if (presetSelect) presetSelect.style.display = 'none';
-  }
-}
-
-// ✅ 슬라이더 값 표시 업데이트
+// 슬라이더 표시값 업데이트
 function updateSliderDisplay() {
   const slider = document.getElementById('hours-slider');
-  const display = document.getElementById('slider-value');
+  const display = document.getElementById('slider-hours-display');
   if (slider && display) {
     display.textContent = slider.value;
   }
 }
 
-// ✅ 시간대 설정 업데이트 (집중시간대 + 불가능시간대)
-function updateTimeSettings() {
-  const selectedDays = Array.from(document.querySelectorAll('.day-checkbox input[type="checkbox"]:checked'))
-    .map(checkbox => checkbox.value);
+// 슬라이더 값을 입력 필드와 동기화
+function syncSliderWithInput() {
+  const slider = document.getElementById('hours-slider');
+  const input = document.getElementById('daily-hours');
+  if (slider && input) {
+    input.value = slider.value;
+  }
+}
+
+// 입력 필드 값을 슬라이더와 동기화
+function syncInputWithSlider() {
+  const input = document.getElementById('daily-hours');
+  const slider = document.getElementById('hours-slider');
+  const display = document.getElementById('slider-hours-display');
   
+  if (input && slider && display) {
+    const value = Math.max(0.5, Math.min(12, parseFloat(input.value) || 2));
+    slider.value = value;
+    display.textContent = value;
+  }
+}
+
+// 선택된 요일에 따른 시간대 설정 업데이트
+function updateDaySpecificSettings() {
+  const selectedDays = getSelectedDays();
   updateFocusTimeSettings(selectedDays);
   updateUnavailableTimeSettings(selectedDays);
 }
 
-// ✅ 집중 시간대 설정 업데이트
+// 선택된 요일 가져오기
+function getSelectedDays() {
+  const selectedDays = [];
+  document.querySelectorAll('.day-checkbox input[type="checkbox"]:checked').forEach(checkbox => {
+    selectedDays.push(checkbox.value);
+  });
+  return selectedDays;
+}
+
+// 집중 시간대 설정 업데이트
 function updateFocusTimeSettings(selectedDays) {
   const container = document.getElementById('focus-time-container');
   if (!container) return;
@@ -291,18 +255,14 @@ function updateFocusTimeSettings(selectedDays) {
   let html = '';
   selectedDays.forEach(day => {
     html += `
-      <div class="day-focus-setting">
+      <div class="day-time-setting">
         <div class="day-label">${dayNames[day]}</div>
-        <div class="focus-time-options">
-          ${focusTimeOptions.map(option => `
-            <div class="focus-time-option">
-              <input type="checkbox" id="focus-${day}-${option.value}" 
-                     name="focus-time-${day}" value="${option.value}" 
-                     data-day="${day}">
-              <label for="focus-${day}-${option.value}">${option.text}</label>
-            </div>
-          `).join('')}
-        </div>
+        <select class="focus-time-select" data-day="${day}">
+          <option value="">선택하세요</option>
+          ${focusTimeOptions.map(option => 
+            `<option value="${option.value}">${option.text}</option>`
+          ).join('')}
+        </select>
       </div>
     `;
   });
@@ -310,7 +270,7 @@ function updateFocusTimeSettings(selectedDays) {
   container.innerHTML = html;
 }
 
-// ✅ 학습 불가 시간대 설정 업데이트
+// 학습 불가 시간대 설정 업데이트
 function updateUnavailableTimeSettings(selectedDays) {
   const container = document.getElementById('unavailable-time-container');
   if (!container) return;
@@ -341,588 +301,708 @@ function updateUnavailableTimeSettings(selectedDays) {
   container.innerHTML = html;
 }
 
-// ✅ 루틴 생성 초기화
+// 최근 루틴 가져오기 함수 (백엔드 연동)
+export function fetchRecentRoutines() {
+  return new Promise((resolve) => {
+    fetch('/api/routines/recent', {
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json();
+      }
+      throw new Error('Invalid response format');
+    })
+    .then(data => {
+      const routines = data.routines || [];
+      console.log('✅ 받아온 루틴 목록:', routines);
+      renderRecentRoutines(routines);
+      resolve(routines);
+    })
+    .catch(error => {
+      console.error('❌ Fetch recent routines error:', error);
+      renderRecentRoutines([]);
+      resolve([]);
+    });
+  });
+}
+
+// 오늘의 일정 가져오기 함수 (백엔드 연동)
+export async function fetchTodaySchedule() {
+  try {
+    const response = await fetch('/api/calendar/today', {
+      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      const schedule = data.schedule || [];
+      console.log('✅ 오늘의 일정:', schedule);
+      renderTodaySchedule(schedule);
+      return schedule;
+    }
+    throw new Error('Invalid response format');
+  } catch (error) {
+    console.error('❌ Fetch today schedule error:', error);
+    renderTodaySchedule([]);
+    return [];
+  }
+}
+
+// 루틴 생성 초기화
 function initRoutineCreation() {
   currentRoutineItems = [];
-  currentEditingItemIndex = null;
-  generatedRoutine = null;
-  dailyRoutines = [];
-  currentDayIndex = 0;
-  
-  // 폼 초기화
-  const routineItemsContainer = document.getElementById('routine-items-container');
-  if (routineItemsContainer) {
-    routineItemsContainer.innerHTML = '';
-  }
-  
-  const routineStartDate = document.getElementById('routine-start-date');
-  if (routineStartDate) {
-    routineStartDate.valueAsDate = new Date();
-  }
-  
-  renderRoutineItems();
-  console.log('✅ 루틴 생성 초기화 완료');
+  document.getElementById('routine-items-container').innerHTML = '';
+  document.getElementById('routine-start-date').valueAsDate = new Date();
+  renderRoutineItems(); // ✅ 반드시 필요!
 }
 
-// ✅ 루틴 항목 저장
+// 루틴 항목 저장
 function saveRoutineItem() {
-  try {
-    // 폼 데이터 수집
-    const subject = getSubjectName();
-    const dailyHours = parseFloat(document.getElementById('daily-hours')?.value) || 0;
-    const selectedDays = Array.from(document.querySelectorAll('.day-checkbox input[type="checkbox"]:checked'))
-      .map(cb => cb.value);
-    const notes = document.getElementById('notes')?.value?.trim() || '';
-
-    console.log('📝 폼 데이터 수집:', {
-      subject,
-      dailyHours,
-      selectedDays,
-      notes
-    });
-
-    // 유효성 검사
-    if (!subject) {
-      showToast('오류', '과목명을 입력해주세요.', 'error');
-      return;
-    }
-
-    if (dailyHours <= 0 || dailyHours > 12) {
-      showToast('오류', '일일 학습시간은 0.5시간에서 12시간 사이로 입력해주세요.', 'error');
-      return;
-    }
-
-    if (selectedDays.length === 0) {
-      showToast('오류', '학습 요일을 최소 1개 이상 선택해주세요.', 'error');
-      return;
-    }
-
-    // 집중 시간대 수집
-    const focusTimeSlots = {};
-    selectedDays.forEach(day => {
-      const dayFocusTimes = Array.from(document.querySelectorAll(`input[name="focus-time-${day}"]:checked`))
-        .map(input => input.value);
-      if (dayFocusTimes.length > 0) {
-        focusTimeSlots[day] = dayFocusTimes;
-      }
-    });
-
-    // 집중 시간대 유효성 검사
-    const hasAnyFocusTime = Object.keys(focusTimeSlots).length > 0;
-    if (!hasAnyFocusTime) {
-      showToast('오류', '최소 한 요일에 집중 시간대를 설정해주세요.', 'error');
-      return;
-    }
-
-    // 중복 과목 검사 (편집 중이 아닌 경우만)
-    if (currentEditingItemIndex === null) {
-      const isDuplicate = currentRoutineItems.some(item => 
-        item.subject.toLowerCase() === subject.toLowerCase()
-      );
-      
-      if (isDuplicate) {
-        showToast('오류', '이미 존재하는 과목입니다. 다른 과목명을 사용해주세요.', 'error');
-        return;
-      }
-    }
-
-    // 학습 불가 시간대 수집
-    const unavailableTimes = [];
-    selectedDays.forEach(day => {
-      const startInput = document.querySelector(`.unavailable-start[data-day="${day}"]`);
-      const endInput = document.querySelector(`.unavailable-end[data-day="${day}"]`);
-      
-      if (startInput && endInput && startInput.value && endInput.value) {
-        // 시간 유효성 검사
-        if (startInput.value >= endInput.value) {
-          showToast('오류', `${dayNames[day]} 시작 시간이 종료 시간보다 늦습니다.`, 'error');
-          return;
-        }
-        
-        unavailableTimes.push({
-          day: day,
-          startTime: startInput.value,
-          endTime: endInput.value
-        });
-      }
-    });
-
-    // 루틴 항목 데이터 생성
-    const routineItem = {
-      subject,
-      dailyHours,
-      focusTimeSlots,
-      selectedDays,
-      unavailableTimes,
-      notes,
-      createdAt: new Date().toISOString()
-    };
-
-    // 항목 추가/수정
-    if (currentEditingItemIndex !== null) {
-      currentRoutineItems[currentEditingItemIndex] = routineItem;
-      showToast('성공', '루틴 항목이 수정되었습니다.', 'success');
-    } else {
-      currentRoutineItems.push(routineItem);
-      showToast('성공', '루틴 항목이 추가되었습니다.', 'success');
-    }
-
-    // UI 업데이트
-    renderRoutineItems();
-    hideModal('routineItem');
-    
-    console.log('✅ 루틴 항목 저장 완료:', routineItem);
-
-  } catch (error) {
-    console.error('❌ 루틴 항목 저장 오류:', error);
-    showToast('오류', '루틴 항목을 저장하는 중 오류가 발생했습니다.', 'error');
-  }
-}
-
-// ✅ 루틴 항목 목록 렌더링
-function renderRoutineItems() {
-  const container = document.getElementById('routine-items-container');
-  if (!container) return;
-  
-  if (currentRoutineItems.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <p>추가된 루틴 항목이 없습니다.</p>
-        <p>아래 버튼으로 추가해주세요.</p>
-      </div>
-    `;
-    
-    // 루틴 생성 버튼 비활성화
-    const generateBtn = document.getElementById('generate-routine');
-    if (generateBtn) {
-      generateBtn.disabled = true;
-    }
-    
+  const validation = validateRoutineItemForm();
+  if (!validation.valid) {
+    showToast('오류', validation.message, 'error');
     return;
   }
   
-  let html = '';
+  const routineItemData = collectRoutineItemData();
+  
+  if (currentEditingItemIndex !== null) { 
+    currentRoutineItems[currentEditingItemIndex] = routineItemData;
+  } else {
+    currentRoutineItems.push(routineItemData);
+  }
+  
+  renderRoutineItems();
+  hideModal('routineItem');
+  showToast('성공', '루틴 항목이 저장되었습니다.', 'success');
+}
+
+function collectRoutineItemData() {
+  const subjectType = document.querySelector('input[name="subject-type"]:checked')?.value || 'subject';
+  const subjectInput = document.getElementById('subject');
+  const subject = subjectInput ? subjectInput.value.trim() : '';
+  const dailyHoursInput = document.getElementById('daily-hours');
+  const dailyHours = dailyHoursInput ? parseFloat(dailyHoursInput.value) : 0;
+  const selectedDays = getSelectedDays();
+
+  // 집중 시간대 수집
+  const focusTimeByDay = {};
+  document.querySelectorAll('.focus-time-select').forEach(select => {
+    const day = select.getAttribute('data-day');
+    if (select.value) {
+      focusTimeByDay[day] = select.value;
+    }
+  });
+
+  // 불가능 시간대 수집
+  const unavailableTimeByDay = {};
+  selectedDays.forEach(day => {
+    const startInput = document.querySelector(`.unavailable-start[data-day="${day}"]`);
+    const endInput = document.querySelector(`.unavailable-end[data-day="${day}"]`);
+    
+    if (startInput && endInput && startInput.value && endInput.value) {
+      unavailableTimeByDay[day] = {
+        start: startInput.value,
+        end: endInput.value
+      };
+    }
+  });
+
+  const notesInput = document.getElementById('notes');
+  const notes = notesInput ? notesInput.value.trim() : '';
+
+  return {
+    subjectType,
+    subject,
+    dailyHours,
+    selectedDays,
+    focusTimeByDay,
+    unavailableTimeByDay,
+    notes
+  };
+}
+
+// 폼 유효성 검사
+function validateRoutineItemForm() {
+  const subjectInput = document.getElementById('subject');
+  const subject = subjectInput ? subjectInput.value.trim() : '';
+  const dailyHoursInput = document.getElementById('daily-hours');
+  const dailyHours = dailyHoursInput ? parseFloat(dailyHoursInput.value) : 0;
+  const selectedDays = getSelectedDays();
+
+  if (!subject) {
+    return { valid: false, message: '과목/활동명을 입력해주세요.' };
+  }
+
+  if (!dailyHours || dailyHours < 0.5 || dailyHours > 12) {
+    return { valid: false, message: '학습 시간은 0.5시간 이상 12시간 이하로 설정해주세요.' };
+  }
+
+  if (selectedDays.length === 0) {
+    return { valid: false, message: '최소 1개 이상의 요일을 선택해주세요.' };
+  }
+
+  return { valid: true };
+}
+
+// 루틴 항목 렌더링
+function renderRoutineItems() {
+  const container = document.getElementById('routine-items-container');
+  if (!container) return;
+
+  // 기존 내용 초기화
+  container.innerHTML = `
+    <ul id="routine-item-list" class="draggable-list" style="padding: 0; list-style: none;"></ul>
+  `;
+
+  const list = document.getElementById('routine-item-list');
+
   currentRoutineItems.forEach((item, index) => {
-    const daysText = item.selectedDays.map(day => dayNames[day]).join(', ');
-    
-    // 집중 시간대 표시
-    let focusText = '';
-    if (typeof item.focusTimeSlots === 'object') {
-      const focusTexts = [];
-      Object.entries(item.focusTimeSlots).forEach(([day, times]) => {
-        const dayName = dayNames[day];
-        const timeTexts = times.map(time => {
-          const option = focusTimeOptions.find(opt => opt.value === time);
-          return option ? option.text : time;
-        });
-        focusTexts.push(`${dayName}: ${timeTexts.join(', ')}`);
-      });
-      focusText = focusTexts.join(' / ');
-    }
-    
-    html += `
-      <div class="routine-item" onclick="editRoutineItem(${index})">
-        <div class="routine-item-content">
-          <h3>${item.subject}</h3>
-          <p><strong>일일 학습시간:</strong> ${item.dailyHours}시간</p>
-          <p><strong>학습 요일:</strong> ${daysText}</p>
-          ${focusText ? `<p><strong>집중 시간대:</strong> ${focusText}</p>` : ''}
-          ${item.notes ? `<p><strong>메모:</strong> ${item.notes}</p>` : ''}
-          ${item.unavailableTimes && item.unavailableTimes.length > 0 ? 
-            `<p><strong>학습 불가:</strong> ${item.unavailableTimes.length}개 시간대</p>` : ''}
-        </div>
-        <div class="routine-item-actions">
-          <button onclick="event.stopPropagation(); deleteRoutineItem(${index})" class="btn-delete" title="삭제">
-            <i class="ri-delete-bin-line"></i>
-          </button>
-        </div>
+    const li = document.createElement('li');
+    li.className = 'routine-item';
+    li.setAttribute('draggable', true);
+    li.dataset.index = index;
+
+    const typeText = item.subjectType === 'activity' ? '활동' : '과목';
+    const daysText = item.selectedDays ? 
+      item.selectedDays.map(day => dayNames[day].charAt(0)).join(', ') : 
+      '매일';
+
+    li.innerHTML = `
+      <div class="routine-item-content">
+        <h3>${item.subject} (${typeText})</h3>
+        <p>${item.dailyHours}시간/일, ${daysText}</p>
       </div>
+      <i class="ri-drag-move-line"></i>
     `;
+
+    // 클릭 시 편집
+    li.addEventListener('click', () => {
+      editRoutineItem(index);
+    });
+
+    // 드래그 이벤트
+    li.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', index);
+    });
+
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      li.classList.add('drag-over');
+    });
+
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over');
+    });
+
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const draggedIndex = e.dataTransfer.getData('text/plain');
+      const targetIndex = li.dataset.index;
+
+      if (draggedIndex !== targetIndex) {
+        const moved = currentRoutineItems.splice(draggedIndex, 1)[0];
+        currentRoutineItems.splice(targetIndex, 0, moved);
+        renderRoutineItems(); // 순서 재렌더링
+      }
+    });
+
+    list.appendChild(li);
   });
-  
-  container.innerHTML = html;
 
-  // 루틴 생성 버튼 활성화
-  const generateBtn = document.getElementById('generate-routine');
-  if (generateBtn) {
-    generateBtn.disabled = false;
-  }
+  // ✅ 추가: 플러스 버튼 DOM 삽입 및 바인딩
+  const addButtonWrapper = document.createElement('div');
+  addButtonWrapper.style.marginTop = '1rem';
+  addButtonWrapper.style.textAlign = 'center';
+  addButtonWrapper.innerHTML = `
+    <button id="add-routine-item" class="btn btn-circle" type="button" title="항목 추가">
+      <i class="ri-add-line"></i>
+    </button>
+  `;
+  container.appendChild(addButtonWrapper);
 
-  console.log(`✅ 루틴 항목 ${currentRoutineItems.length}개 렌더링 완료`);
+  document.getElementById('add-routine-item').addEventListener('click', () => {
+    if (currentRoutineItems.length >= 10) {
+      showToast('오류', '최대 10개 항목만 추가할 수 있습니다.', 'error');
+      return;
+    }
+    currentEditingItemIndex = null;
+    document.getElementById('routine-item-number').textContent = currentRoutineItems.length + 1;
+    showModal('routineItem');
+    setTimeout(() => resetRoutineItemForm(), 0);
+  });
 }
 
-// ✅ 루틴 항목 편집
-window.editRoutineItem = function(index) {
-  if (index < 0 || index >= currentRoutineItems.length) return;
-  
-  const item = currentRoutineItems[index];
-  currentEditingItemIndex = index;
-  
-  console.log('✅ 루틴 항목 편집 시작:', item);
-  
-  // 폼에 기존 값 채우기
-  setSubjectName(item.subject);
-  
-  const hoursInput = document.getElementById('daily-hours');
-  const hoursSlider = document.getElementById('hours-slider');
-  const notesTextarea = document.getElementById('notes');
-  
-  if (hoursInput) hoursInput.value = item.dailyHours;
-  if (hoursSlider) hoursSlider.value = item.dailyHours;
-  if (notesTextarea) notesTextarea.value = item.notes || '';
-  
-  updateSliderDisplay();
-  
-  // 요일 체크박스 설정
-  document.querySelectorAll('.day-checkbox input[type="checkbox"]').forEach(checkbox => {
-    checkbox.checked = item.selectedDays.includes(checkbox.value);
-  });
-  
-  // 시간대 UI 업데이트
-  updateTimeSettings();
-  
-  // 데이터 설정 (DOM 업데이트 후)
-  setTimeout(() => {
-    // 집중 시간대 설정
-    if (item.focusTimeSlots && typeof item.focusTimeSlots === 'object') {
-      Object.entries(item.focusTimeSlots).forEach(([day, times]) => {
-        times.forEach(time => {
-          const checkbox = document.querySelector(`input[name="focus-time-${day}"][value="${time}"]`);
-          if (checkbox) checkbox.checked = true;
-        });
-      });
-    }
-    
-    // 학습 불가 시간대 설정
-    if (item.unavailableTimes) {
-      item.unavailableTimes.forEach(timeSlot => {
-        const startInput = document.querySelector(`.unavailable-start[data-day="${timeSlot.day}"]`);
-        const endInput = document.querySelector(`.unavailable-end[data-day="${timeSlot.day}"]`);
-        
-        if (startInput) startInput.value = timeSlot.startTime;
-        if (endInput) endInput.value = timeSlot.endTime;
-      });
-    }
-  }, 100);
-  
-  // 모달 제목 변경 및 삭제 버튼 표시
-  const itemNumber = document.getElementById('routine-item-number');
-  const deleteBtn = document.getElementById('delete-routine-item');
-  
-  if (itemNumber) {
-    itemNumber.textContent = `${index + 1} 수정`;
-  }
-  if (deleteBtn) {
-    deleteBtn.style.display = 'inline-block';
-  }
-  
-  showModal('routineItem');
-  console.log('✅ 루틴 항목 편집 모달 표시');
-};
 
-// ✅ 루틴 항목 삭제
-window.deleteRoutineItem = function(index) {
-  if (index < 0 || index >= currentRoutineItems.length) return;
-  
-  const item = currentRoutineItems[index];
-  
-  showConfirm(
-    '항목 삭제',
-    `"${item.subject}" 항목을 삭제하시겠습니까?`,
-    () => {
-      currentRoutineItems.splice(index, 1);
-      renderRoutineItems();
-      showToast('성공', '루틴 항목이 삭제되었습니다.', 'success');
-      console.log('✅ 루틴 항목 삭제 완료:', index);
-    }
-  );
-};
-
-// ✅ 루틴 항목 폼 초기화
 function resetRoutineItemForm() {
-  // 과목 입력 초기화
-  const presetRadio = document.getElementById('subject-preset');
-  const customRadio = document.getElementById('subject-custom');
-  const presetSelect = document.getElementById('subject-preset-list');
-  const customInput = document.getElementById('subject-custom-input');
-  
-  if (presetRadio) presetRadio.checked = true;
-  if (customRadio) customRadio.checked = false;
-  if (presetSelect) {
-    presetSelect.selectedIndex = 0;
-    presetSelect.style.display = 'block';
-  }
-  if (customInput) {
-    customInput.value = '';
-    customInput.style.display = 'none';
-  }
-  
-  // 다른 폼 요소들 초기화
-  const hoursInput = document.getElementById('daily-hours');
-  const hoursSlider = document.getElementById('hours-slider');
-  const notesTextarea = document.getElementById('notes');
-  
-  if (hoursInput) hoursInput.value = '2';
-  if (hoursSlider) hoursSlider.value = '2';
-  if (notesTextarea) notesTextarea.value = '';
-  
-  updateSliderDisplay();
-  
-  // 모든 체크박스 해제
-  document.querySelectorAll('.day-checkbox input[type="checkbox"]').forEach(cb => cb.checked = false);
-  
-  // 시간대 설정 초기화
-  updateTimeSettings();
-  
-  // 모달 제목 초기화 및 삭제 버튼 숨기기
-  const itemNumber = document.getElementById('routine-item-number');
-  const deleteBtn = document.getElementById('delete-routine-item');
-  
-  if (itemNumber) {
-    itemNumber.textContent = currentRoutineItems.length + 1;
-  }
-  if (deleteBtn) {
-    deleteBtn.style.display = 'none';
-  }
-  
-  currentEditingItemIndex = null;
-  
-  console.log('✅ 루틴 항목 폼 초기화 완료');
+  const subjectInput = document.getElementById('subject');
+  if (subjectInput) subjectInput.value = '';
+
+  const dailyHoursInput = document.getElementById('daily-hours');
+  const slider = document.getElementById('hours-slider');
+  const display = document.getElementById('slider-hours-display');
+
+  if (dailyHoursInput) dailyHoursInput.value = '2';
+  if (slider) slider.value = '2';
+  if (display) display.textContent = '2';
+
+  const notesInput = document.getElementById('notes');
+  if (notesInput) notesInput.value = '';
 }
 
-// ✅ 루틴 생성
-async function generateRoutine() {
-  try {
-    if (currentRoutineItems.length === 0) {
-      showToast('오류', '최소 1개 이상의 항목을 추가해주세요.', 'error');
-      return;
-    }
+// 루틴 항목 편집
+function editRoutineItem(index) {
+  currentEditingItemIndex = index;
+  const item = currentRoutineItems[index];
+  
+  document.getElementById('routine-item-number').textContent = index + 1;
+  setRoutineItemData(item);
+  showModal('routineItem');
+}
 
-    console.log('🤖 AI 루틴 생성 시작...');
-    showLoading('AI가 맞춤형 루틴을 생성하고 있습니다...');
+// 루틴 항목 데이터 설정 (편집 시)
+function setRoutineItemData(data) {
+  if (data.subjectType) {
+    const radio = document.querySelector(`input[name="subject-type"][value="${data.subjectType}"]`);
+    if (radio) radio.checked = true;
+  }
+  
+  if (data.subject) {
+    document.getElementById('subject').value = data.subject;
+  }
+  
+  if (data.dailyHours) {
+    document.getElementById('daily-hours').value = data.dailyHours;
+    const slider = document.getElementById('hours-slider');
+    const display = document.getElementById('slider-hours-display');
+    if (slider) slider.value = data.dailyHours;
+    if (display) display.textContent = data.dailyHours;
+  }
+  
+  if (data.selectedDays) {
+    document.querySelectorAll('.day-checkbox input[type="checkbox"]').forEach(checkbox => {
+      checkbox.checked = data.selectedDays.includes(checkbox.value);
+    });
+    updateDaySpecificSettings();
     
-    // 폼 데이터 수집
-    const startDate = document.getElementById('routine-start-date')?.value;
-    const duration = parseInt(document.getElementById('routine-duration')?.value) || 7;
-
-    if (!startDate) {
-      showToast('오류', '시작 날짜를 선택해주세요.', 'error');
-      hideLoading();
-      return;
+    if (data.focusTimeByDay) {
+      setTimeout(() => {
+        Object.entries(data.focusTimeByDay).forEach(([day, time]) => {
+          const select = document.querySelector(`.focus-time-select[data-day="${day}"]`);
+          if (select) {
+            select.value = time;
+          }
+        });
+      }, 100);
     }
-
-    // 루틴 생성 버튼 비활성화
-    const generateBtn = document.getElementById('generate-routine');
-    if (generateBtn) {
-      generateBtn.disabled = true;
-      generateBtn.textContent = '생성 중...';
+    
+    if (data.unavailableTimeByDay) {
+      setTimeout(() => {
+        Object.entries(data.unavailableTimeByDay).forEach(([day, timeRange]) => {
+          const startInput = document.querySelector(`.unavailable-start[data-day="${day}"]`);
+          const endInput = document.querySelector(`.unavailable-end[data-day="${day}"]`);
+          
+          if (startInput && endInput) {
+            startInput.value = timeRange.start;
+            endInput.value = timeRange.end;
+          }
+        });
+      }, 100);
     }
+  }
+  
+  if (data.notes) {
+    document.getElementById('notes').value = data.notes;
+  }
+}
 
-    // 서버에 루틴 생성 요청
+// 루틴 생성 (AI 호출 - 백엔드 연동)
+async function generateRoutine() {
+  showToast('정보', 'AI가 루틴을 생성 중입니다...', 'info');
+  hideModal('routine');
+  
+  try {
+    const durationElement = document.getElementById('routine-duration');
+    const duration = durationElement ? durationElement.value : '7';
+
+    const startDateElement = document.getElementById('routine-start-date');
+    const startDate = startDateElement ? startDateElement.value : new Date().toISOString().slice(0, 10);
+
     const requestData = {
       routineItems: currentRoutineItems,
       startDate,
-      duration,
-      preferences: {
-        studyStyle: 'balanced',
-        breakDuration: 15,
-        maxDailyHours: Math.max(...currentRoutineItems.map(item => item.dailyHours))
-      }
+      duration
     };
-
-    console.log('🤖 루틴 생성 요청:', requestData);
-
-    const response = await authenticatedFetch('/api/recommend', {
+    
+    const response = await fetch('/api/recommend', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
       },
       body: JSON.stringify(requestData)
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('✅ 루틴 생성 응답:', result);
-
-    if (result.success !== false) {
-      generatedRoutine = result.recommendation;
-      dailyRoutines = result.dailyRoutines || [];
-      
-      // 결과 모달에 데이터 표시
-      displayRoutineResult();
-      
-      // 모달 전환
-      hideModal('routine');
-      showModal('routineResult');
-      
-      showToast('성공', '맞춤형 루틴이 생성되었습니다!', 'success');
-    } else {
-      throw new Error(result.error || '루틴 생성에 실패했습니다');
-    }
-
-  } catch (error) {
-    console.error('❌ 루틴 생성 오류:', error);
-    showToast('오류', `루틴 생성 실패: ${error.message}`, 'error');
-  } finally {
-    hideLoading();
     
-    // 버튼 상태 복원
-    const generateBtn = document.getElementById('generate-routine');
-    if (generateBtn) {
-      generateBtn.disabled = false;
-      generateBtn.textContent = '루틴 생성';
+    if (!response.ok) {
+      throw new Error('루틴 생성 실패');
     }
-  }
-}
-
-// ✅ 루틴 결과 표시
-function displayRoutineResult() {
-  const fullRoutineContent = document.getElementById('full-routine-content');
-  const dailyRoutineContent = document.getElementById('daily-routine-content');
-  
-  if (fullRoutineContent && generatedRoutine) {
-    fullRoutineContent.textContent = generatedRoutine;
-  }
-  
-  if (dailyRoutineContent && dailyRoutines.length > 0) {
-    displayDailyRoutine(0);
-  }
-  
-  // 탭 이벤트 설정
-  setupRoutineResultTabs();
-  
-  console.log('✅ 루틴 결과 표시 완료');
-}
-
-// ✅ 일별 루틴 표시
-function displayDailyRoutine(dayIndex) {
-  const dailyRoutineContent = document.getElementById('daily-routine-content');
-  const currentDayDisplay = document.getElementById('current-day-display');
-  
-  if (dailyRoutines && dailyRoutines[dayIndex]) {
-    if (dailyRoutineContent) {
-      dailyRoutineContent.textContent = dailyRoutines[dayIndex];
-    }
-    if (currentDayDisplay) {
-      currentDayDisplay.textContent = `${dayIndex + 1}일차`;
-    }
-  }
-  
-  currentDayIndex = dayIndex;
-}
-
-// ✅ 루틴 결과 탭 설정
-function setupRoutineResultTabs() {
-  const tabs = document.querySelectorAll('.tab');
-  const tabPanes = document.querySelectorAll('.tab-pane');
-  
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      // 모든 탭 비활성화
-      tabs.forEach(t => t.classList.remove('active'));
-      tabPanes.forEach(pane => pane.classList.remove('active'));
+    
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const responseData = await response.json();
       
-      // 선택된 탭 활성화
-      tab.classList.add('active');
-      const targetTab = tab.dataset.tab;
-      const targetPane = document.getElementById(targetTab);
-      if (targetPane) {
-        targetPane.classList.add('active');
-      }
+      // 루틴 데이터 설정
+      generatedRoutine = responseData.recommendation;
+      // ✅ 여기에 schedules 초기화 강제 삽입
+      dailyRoutines = (responseData.dailyRoutines || []).map(day => ({
+        ...day,
+        schedules: day.schedules || []
+      }));
+
+      // ✅ 이 아래에 로그 추가
+      console.log('🧾 dailyRoutines after init:', dailyRoutines);
+      
+      // 결과 표시
+      document.getElementById('full-routine-content').textContent = generatedRoutine;
+      updateDailyRoutineView();
+      
+      showModal('routineResult');
+      renderRoutineTabs(); // 👈 이 줄 추가
+      showToast('성공', 'AI 루틴이 생성되었습니다!', 'success');
+    } else {
+      throw new Error('Invalid response format');
+    }
+  } catch (error) {
+    console.error('❌ Generate routine error:', error);
+    showToast('오류', '루틴 생성 중 오류가 발생했습니다.', 'error');
+  } finally {
+    // 버튼 활성화
+    if (document.getElementById('generate-routine')) {
+      document.getElementById('generate-routine').disabled = false;
+    }
+  }
+}
+
+// 일별 루틴 뷰 업데이트
+function updateDailyRoutineView() {
+  if (dailyRoutines.length === 0) {
+    return;
+  }
+  
+  const currentDayRoutine = dailyRoutines[currentDayIndex];
+  document.getElementById('current-day-display').textContent = `${currentDayIndex + 1}일차 (${currentDayRoutine.date})`;
+  document.getElementById('daily-routine-content').textContent = currentDayRoutine.content;
+  
+  // 이전/다음 버튼 활성화 상태 조정
+  document.getElementById('prev-day').disabled = currentDayIndex === 0;
+  document.getElementById('next-day').disabled = currentDayIndex === dailyRoutines.length - 1;
+}
+
+// 일정 편집 모달 표시
+function showEditScheduleModal() {
+  const currentDayRoutine = dailyRoutines[currentDayIndex];
+  
+  if (!currentDayRoutine || !currentDayRoutine.schedules) {
+    showToast('오류', '편집할 일정이 없습니다.', 'error');
+    return;
+  }
+  
+  renderScheduleItems(currentDayRoutine.schedules);
+  showModal('editSchedule');
+}
+
+// 일정 항목 렌더링
+function renderScheduleItems(schedules) {
+  const container = document.getElementById('schedule-items-container');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  schedules.forEach((schedule, index) => {
+    const el = document.createElement('div');
+    el.className = 'schedule-item';
+    el.draggable = true;
+    el.innerHTML = `
+      <div class="schedule-item-drag">
+        <i class="ri-drag-move-line"></i>
+      </div>
+      <div class="schedule-item-content">
+        <input type="time" value="${schedule.startTime}" data-index="${index}" class="schedule-start-time">
+        - 
+        <input type="time" value="${schedule.endTime}" data-index="${index}" class="schedule-end-time">
+        <input type="text" value="${schedule.title}" data-index="${index}" class="schedule-title">
+      </div>
+      <div class="schedule-item-actions">
+        <button class="btn btn-icon delete-schedule" data-index="${index}">
+          <i class="ri-delete-bin-line"></i>
+        </button>
+      </div>
+    `;
+    
+    // 삭제 버튼 이벤트
+    el.querySelector('.delete-schedule').addEventListener('click', (e) => {
+      const idx = parseInt(e.currentTarget.getAttribute('data-index'));
+      schedules.splice(idx, 1);
+      renderScheduleItems(schedules);
     });
+    
+    container.appendChild(el);
+  });
+}
+
+export function saveScheduleEdit() {
+  console.log("📌 currentDayIndex:", currentDayIndex);
+  console.log("📌 dailyRoutines:", dailyRoutines);
+  console.log("📌 dailyRoutines[currentDayIndex]:", dailyRoutines[currentDayIndex]);
+  console.log("📌 schedules:", dailyRoutines[currentDayIndex]?.schedules);
+  const titleInput = document.getElementById('edit-title');
+  const timeInput = document.getElementById('edit-time');
+  const memoInput = document.getElementById('edit-memo');
+
+  if (!titleInput || !timeInput) {
+    showToast('오류', '제목과 시간을 모두 입력해주세요.', 'error');
+    return;
+  }
+
+  const title = titleInput.value.trim();
+  const time = timeInput.value.trim();
+  const notes = memoInput?.value.trim() || '';
+
+  if (!title || !time.includes('-')) {
+    showToast('오류', '시간은 "시작-종료" 형식으로 입력해주세요.', 'error');
+    return;
+  }
+
+  const [startTime, endTime] = time.split('-').map(t => t.trim());
+
+  if (!startTime || !endTime) {
+    showToast('오류', '시작 시간과 종료 시간을 모두 입력해주세요.', 'error');
+    return;
+  }
+
+  // 대상 schedule 배열
+  const currentDay = dailyRoutines[currentDayIndex];
+  if (!currentDay || !Array.isArray(currentDay.schedules)) {
+    showToast('오류', '수정할 일정이 없습니다.', 'error');
+    return;
+  }
+
+  // 첫 번째 항목만 수정
+  const schedule = currentDay.schedules[0];
+  if (!schedule) {
+    showToast('오류', '수정할 일정이 없습니다.', 'error');
+    return;
+  }
+
+  schedule.title = title;
+  schedule.startTime = startTime;
+  schedule.endTime = endTime;
+  schedule.notes = notes;
+
+  // 정렬 및 반영
+  updateDailyRoutineContent();
+  updateDailyRoutineView();
+  hideModal('editSchedule');
+  showToast('성공', '일정이 수정되었습니다.', 'success');
+
+  // 최신화
+  fetchTodaySchedule();
+}
+
+
+
+// 일별 루틴 컨텐츠 업데이트
+function updateDailyRoutineContent() {
+  const currentDayRoutine = dailyRoutines[currentDayIndex];
+  
+  if (!currentDayRoutine || !currentDayRoutine.schedules) {
+    return;
+  }
+  
+  // 스케줄을 시간 순으로 정렬
+  currentDayRoutine.schedules.sort((a, b) => {
+    return a.startTime.localeCompare(b.startTime);
   });
   
-  // 이전/다음 일차 버튼
-  const prevDayBtn = document.getElementById('prev-day');
-  const nextDayBtn = document.getElementById('next-day');
+  // 새로운 컨텐츠 생성
+  let content = `${currentDayRoutine.date} 일정:\n\n`;
   
-  if (prevDayBtn) {
-    prevDayBtn.addEventListener('click', () => {
-      if (currentDayIndex > 0) {
-        displayDailyRoutine(currentDayIndex - 1);
-      }
-    });
-  }
+  currentDayRoutine.schedules.forEach(schedule => {
+    content += `${schedule.startTime}-${schedule.endTime}: ${schedule.title}\n`;
+  });
   
-  if (nextDayBtn) {
-    nextDayBtn.addEventListener('click', () => {
-      if (currentDayIndex < dailyRoutines.length - 1) {
-        displayDailyRoutine(currentDayIndex + 1);
-      }
-    });
-  }
+  currentDayRoutine.content = content;
+  document.getElementById('daily-routine-content').textContent = content;
 }
 
-// ✅ 캘린더에 루틴 저장
-async function saveRoutineToCalendar() {
-  try {
-    if (!generatedRoutine) {
-      showToast('오류', '저장할 루틴이 없습니다.', 'error');
+// 캘린더에 루틴 저장 (백엔드 연동)
+function saveRoutineToCalendar() {
+  if (!dailyRoutines.length) {
+    showToast('오류', '저장할 루틴이 없습니다.', 'error');
+    return;
+  }
+
+  // 캘린더 탭으로 먼저 이동
+  document.querySelector('.nav-item[data-page="calendar"]')?.click();
+
+  if (!window.calendar) {
+    if (window.calendarModule?.initCalendar) {
+      console.warn('calendar가 없어 강제 초기화 시도');
+      window.calendarModule.initCalendar();
+    }
+  }
+
+  setTimeout(async () => {
+    if (!window.calendar && window.calendarModule?.initCalendar) {
+      console.warn('calendar가 없어 강제 초기화 시도');
+      window.calendarModule.initCalendar();
+    }
+
+    const calendar = window.calendar;
+    if (!calendar || typeof calendar.getEvents !== 'function') {
+      showToast('오류', '캘린더를 초기화할 수 없습니다.', 'error');
       return;
     }
 
-    showLoading('캘린더에 루틴을 저장하고 있습니다...');
+    // 기존 이벤트 제거 (선택사항)
+    // calendar.getEvents().forEach(event => event.remove());
 
-    const routineData = {
-      title: `AI 생성 루틴 - ${new Date().toLocaleDateString()}`,
-      content: generatedRoutine,
-      dailyRoutines: dailyRoutines,
-      routineItems: currentRoutineItems,
-      startDate: document.getElementById('routine-start-date')?.value,
-      duration: parseInt(document.getElementById('routine-duration')?.value) || 7
-    };
+    const startDate = new Date(document.getElementById('routine-start-date').value);
+    const eventsToSave = [];
 
-    const response = await authenticatedFetch('/api/routines', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(routineData)
+    dailyRoutines.forEach((dayRoutine, dayIndex) => {
+      const eventDate = new Date(startDate);
+      eventDate.setDate(startDate.getDate() + dayIndex);
+      const dateString = eventDate.toISOString().split('T')[0];
+
+      if (dayRoutine.schedules) {
+        dayRoutine.schedules.forEach(schedule => {
+          const startDateTime = `${dateString}T${schedule.startTime}:00`;
+          const endDateTime = `${dateString}T${schedule.endTime}:00`;
+
+          const subjectColors = {
+            '수학': '#4361ee',
+            '영어': '#3a0ca3',
+            '국어': '#7209b7',
+            '과학': '#4cc9f0',
+            '사회': '#f72585',
+            '프로그래밍': '#4f772d',
+            '음악': '#ff7b00',
+            '미술': '#ff9e00',
+            '체육': '#ff4d6d'
+          };
+
+          let color = '#4361ee';
+          for (const subject in subjectColors) {
+            if (schedule.title.includes(subject)) {
+              color = subjectColors[subject];
+              break;
+            }
+          }
+
+          const eventData = {
+            id: `routine-${dayIndex}-${Math.random().toString(36).substr(2, 9)}`,
+            title: schedule.title,
+            start: startDateTime,
+            end: endDateTime,
+            backgroundColor: color,
+            borderColor: color,
+            extendedProps: {
+              subject: schedule.subject || '',
+              notes: schedule.notes || '',
+              completed: false
+            }
+          };
+
+          // 캘린더에 이벤트 추가
+          calendar.addEvent(eventData);
+          eventsToSave.push(eventData);
+        });
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    // 서버에 이벤트들 저장
+    try {
+      for (const eventData of eventsToSave) {
+        await fetch('/api/calendar/events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`
+          },
+          body: JSON.stringify(eventData)
+        });
+      }
 
-    const result = await response.json();
-    
-    if (result.success !== false) {
-      showToast('성공', '루틴이 캘린더에 저장되었습니다!', 'success');
-      
-      // 모달 닫기
+      // 루틴 자체도 저장
+      await saveRoutineToDatabase();
+
       hideModal('routineResult');
+      showToast('성공', '루틴이 캘린더에 저장되었습니다.', 'success');
       
-      // 홈 페이지 데이터 새로고침
-      setTimeout(() => {
-        if (window.fetchRecentRoutines) window.fetchRecentRoutines();
-        if (window.fetchTodaySchedule) window.fetchTodaySchedule();
-      }, 500);
+      // 오늘의 일정 새로고침
+      fetchTodaySchedule();
       
-      // 루틴 생성 폼 초기화
-      initRoutineCreation();
-      
-      return result.routine || routineData;
-    } else {
-      throw new Error(result.error || '루틴 저장에 실패했습니다');
+    } catch (error) {
+      console.error('❌ Error saving to server:', error);
+      showToast('경고', '캘린더에 표시되었지만 서버 저장 중 오류가 발생했습니다.', 'warning');
     }
+  }, 300);
+}
 
+// 루틴을 데이터베이스에 저장
+async function saveRoutineToDatabase() {
+  try {
+    const saveData = {
+      routineItems: currentRoutineItems,
+      startDate: document.getElementById('routine-start-date').value,
+      duration: document.getElementById('routine-duration').value,
+      fullRoutine: generatedRoutine,
+      dailyRoutines: dailyRoutines
+    };
+    
+  const response = await fetch('/api/routines/save', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getAuthToken()}`
+  },
+  body: JSON.stringify(saveData)
+  });
+
+    
+    if (!response.ok) {
+      throw new Error('Failed to save routine');
+    }
+    
+    const result = await response.json();
+    console.log('✅ Routine saved to database:', result);
+    
+    // 최근 루틴 목록 새로고침
+    fetchRecentRoutines();
+    
+    return result;
   } catch (error) {
-    console.error('❌ 루틴 저장 실패:', error);
-    showToast('오류', `루틴 저장 실패: ${error.message}`, 'error');
+    console.error('❌ Error saving routine to database:', error);
     throw error;
-  } finally {
-    hideLoading();
   }
 }
 
-// ✅ 최근 루틴 렌더링 (ui.js에서 호출)
+// ✅ 최근 생성된 루틴 렌더링 함수
 export function renderRecentRoutines(routines) {
   const container = document.getElementById('recent-routines-list');
   if (!container) {
-    console.error('❌ Recent routines container not found');
+    console.error('Recent routines container not found');
     return;
   }
 
@@ -941,95 +1021,112 @@ export function renderRecentRoutines(routines) {
   routines.slice(0, 3).forEach(routine => {
     const title = routine.title || '제목 없음';
     const subjects = (routine.subjects || []).join(', ') || '미지정';
-    const date = routine.createdAt || '날짜 미지정';
-    
-    const routineCard = document.createElement('div');
-    routineCard.className = 'routine-card';
-    routineCard.innerHTML = `
-      <div class="routine-card-header">
-        <h4>${title}</h4>
-        <span class="routine-date">${date}</span>
-      </div>
-      <div class="routine-card-body">
-        <p><strong>과목:</strong> ${subjects}</p>
-      </div>
+    const date = routine.createdAt 
+      ? new Date(routine.createdAt).toISOString().split('T')[0] 
+      : '날짜 없음';
+
+    const el = document.createElement('div');
+    el.className = 'routine-card';
+
+    el.innerHTML = `
+      <h3>${title}</h3>
+      <p>과목: ${subjects}</p>
+      <p>생성일: ${date}</p>
     `;
-    
-    container.appendChild(routineCard);
+
+    container.appendChild(el);
   });
-  
-  console.log(`✅ 최근 루틴 ${routines.length}개 렌더링 완료`);
 }
 
-// ✅ 루틴 결과 모달 이벤트 설정
-export function initRoutineResultHandlers() {
-  // 캘린더에 저장 버튼
-  const saveToCalendarBtn = document.getElementById('save-to-calendar');
-  if (saveToCalendarBtn) {
-    saveToCalendarBtn.addEventListener('click', async () => {
-      await saveRoutineToCalendar();
-    });
+function renderRoutineTabs() {
+  const 전체탭 = document.getElementById("tab-full");
+  const 일별탭 = document.getElementById("tab-daily");
+  const routineContent = document.getElementById("routine-content");
+
+  if (!전체탭 || !일별탭 || !routineContent || !generatedRoutine || !dailyRoutines) {
+    return;
   }
 
-  // 다시 생성 버튼
-  const regenerateBtn = document.getElementById('regenerate-routine');
-  if (regenerateBtn) {
-    regenerateBtn.addEventListener('click', () => {
-      hideModal('routineResult');
-      showModal('routine');
-    });
-  }
+  전체탭.onclick = () => {
+    routineContent.innerHTML = `<pre>${generatedRoutine}</pre>`;
+  };
 
-  // 루틴 편집 버튼
-  const editRoutineBtn = document.getElementById('edit-routine-btn');
-  if (editRoutineBtn) {
-    editRoutineBtn.addEventListener('click', () => {
-      toggleRoutineEdit();
-    });
-  }
-
-  // 일정 수정 버튼
-  const editDailyRoutineBtn = document.getElementById('edit-daily-routine');
-  if (editDailyRoutineBtn) {
-    editDailyRoutineBtn.addEventListener('click', () => {
-      showModal('editSchedule');
-    });
-  }
+  일별탭.onclick = () => {
+    routineContent.innerHTML = dailyRoutines
+      .map(day => {
+        const date = new Date(day.date).toLocaleDateString('ko-KR', {
+          year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+        });
+        const schedules = day.schedules || [];
+        const scheduleHtml = schedules.map(s =>
+          `<li><strong>${s.startTime} ~ ${s.endTime}</strong> | ${s.title}</li>`
+        ).join('');
+        return `<h4>${date}</h4><ul>${scheduleHtml}</ul>`;
+      })
+      .join("<hr>");
+  };
 }
 
-// ✅ 루틴 편집 토글
-function toggleRoutineEdit() {
-  const routineText = document.getElementById('full-routine-content');
-  const routineEditor = document.getElementById('routine-editor');
+// 탭 클릭 시 내용 전환 처리
+document.querySelector('.tab[data-tab="full-routine"]')?.addEventListener('click', () => {
+  document.getElementById('full-routine').style.display = 'block';
+  document.getElementById('daily-routine').style.display = 'none';
+});
+
+document.querySelector('.tab[data-tab="daily-routine"]')?.addEventListener('click', () => {
+  document.getElementById('full-routine').style.display = 'none';
+  document.getElementById('daily-routine').style.display = 'block';
+});
+
+// 탭 클릭 시 활성화 처리
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    const target = tab.getAttribute('data-tab');
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+      pane.classList.remove('active');
+    });
+    document.getElementById(target)?.classList.add('active');
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
   const editBtn = document.getElementById('edit-routine-btn');
-  
-  if (!isEditingRoutine) {
-    // 편집 모드 시작
-    if (routineText && routineEditor) {
-      originalRoutineContent = routineText.textContent;
-      routineEditor.value = originalRoutineContent;
-      routineText.style.display = 'none';
-      routineEditor.style.display = 'block';
-      editBtn.textContent = '저장';
-      isEditingRoutine = true;
-    }
-  } else {
-    // 편집 저장
-    if (routineText && routineEditor) {
-      generatedRoutine = routineEditor.value;
-      routineText.textContent = generatedRoutine;
-      routineText.style.display = 'block';
-      routineEditor.style.display = 'none';
-      editBtn.textContent = '편집';
-      isEditingRoutine = false;
-      showToast('성공', '루틴이 수정되었습니다.', 'success');
-    }
+  const routineViewer = document.getElementById('full-routine-content');
+  const routineEditor = document.getElementById('routine-editor');
+
+  let editing = false;
+
+  if (editBtn && routineViewer && routineEditor) {
+    editBtn.addEventListener('click', () => {
+      if (!editing) {
+        // 편집 시작
+        routineEditor.value = routineViewer.innerText;
+        routineViewer.style.display = 'none';
+        routineEditor.style.display = 'block';
+        editBtn.textContent = '편집 완료';
+        editing = true;
+      } else {
+        // ✅ 편집 완료
+        const updatedText = routineEditor.value;
+        routineViewer.innerText = updatedText;
+        routineViewer.style.display = 'block';
+        routineEditor.style.display = 'none';
+        editBtn.textContent = '편집';
+        editing = false;
+
+        // ✅ 수정된 루틴 내용을 반영
+        generatedRoutine = updatedText;
+        console.log('🔁 수정된 전체 루틴 반영됨:', generatedRoutine);
+      }
+    });
   }
-}
+});
 
-// ✅ 전역 함수로 노출
-window.editRoutineItem = window.editRoutineItem;
-window.deleteRoutineItem = window.deleteRoutineItem;
-window.currentRoutineId = null;
+document.addEventListener('DOMContentLoaded', () => {
+  initRoutineHandlers();
+});
 
-console.log('✅ routine.js 모듈 로드 완료');
+window.saveScheduleEdit = saveScheduleEdit;

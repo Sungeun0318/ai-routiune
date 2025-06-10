@@ -37,10 +37,10 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   },
   
-  // ✅ 루틴 데이터 (기존 코드 호환)
+  // ✅ 루틴 데이터 (필수 필드 제거하여 오류 방지)
   routines: [{
-    id: { type: String, required: true },
-    title: { type: String, required: true },
+    id: { type: String },
+    title: { type: String },  // required 제거
     subjects: [String],
     routineItems: [{
       subject: String,
@@ -54,9 +54,10 @@ const userSchema = new mongoose.Schema({
       }],
       notes: String
     }],
-    startDate: { type: Date, required: true },
-    duration: { type: Number, required: true },
-    fullRoutine: { type: String, required: true },
+    startDate: { type: Date },  // required 제거
+    endDate: { type: Date },    // 이 필드가 문제였음 - required 제거
+    duration: { type: Number },
+    fullRoutine: { type: String },
     dailyRoutines: [{
       date: String,
       content: String,
@@ -74,10 +75,10 @@ const userSchema = new mongoose.Schema({
   
   // ✅ 캘린더 이벤트 데이터 (기존 코드 호환)
   calendarEvents: [{
-    id: { type: String, required: true },
-    title: { type: String, required: true },
-    start: { type: Date, required: true },
-    end: { type: Date, required: true },
+    id: { type: String },
+    title: { type: String },
+    start: { type: Date },
+    end: { type: Date },
     backgroundColor: { type: String, default: '#4361ee' },
     borderColor: { type: String, default: '#4361ee' },
     subject: { type: String, default: '' },
@@ -100,7 +101,8 @@ const userSchema = new mongoose.Schema({
     completedEvents: { type: Number, default: 0 },
     totalStudyHours: { type: Number, default: 0 },
     streak: { type: Number, default: 0 },
-    lastActivity: { type: Date, default: Date.now }
+    lastActiveDate: { type: Date, default: Date.now },  // lastActivity → lastActiveDate로 통일
+    lastActivity: { type: Date, default: Date.now }     // 호환성 유지
   }
 }, {
   timestamps: true
@@ -168,6 +170,7 @@ userSchema.methods.toggleEventCompletion = function(eventId) {
     // 통계 업데이트
     this.stats.completedEvents = this.calendarEvents.filter(e => e.completed).length;
     this.stats.lastActivity = new Date();
+    this.stats.lastActiveDate = new Date();  // 호환성 위해 둘 다 업데이트
     
     return this.save();
   }
@@ -181,6 +184,7 @@ userSchema.methods.updateStats = function() {
     ? this.calendarEvents.filter(e => e.completed).length 
     : 0;
   this.stats.lastActivity = new Date();
+  this.stats.lastActiveDate = new Date();  // 호환성 위해 둘 다 업데이트
   return this.save();
 };
 
@@ -192,6 +196,7 @@ userSchema.pre('save', function(next) {
       ? this.calendarEvents.filter(e => e.completed).length 
       : 0;
     this.stats.lastActivity = new Date();
+    this.stats.lastActiveDate = new Date();  // 호환성 위해 둘 다 업데이트
   }
   next();
 });
