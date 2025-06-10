@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
@@ -41,6 +43,15 @@ router.post('/save', requireLogin, async (req, res) => {
     }
 
     user.routines.push(routineData);
+    if (!user.stats) {
+      user.stats = {
+        totalRoutines: 0,
+        completedEvents: 0,
+        totalStudyHours: 0,
+        streak: 0
+      };
+    }
+    user.stats.totalRoutines = user.routines.length;
     await user.save();
 
     res.json({ 
@@ -118,6 +129,13 @@ router.delete('/:routineId', requireLogin, async (req, res) => {
     }
 
     user.routines.splice(routineIndex, 1);
+    
+    // ✅ 삭제 시에도 stats.totalRoutines 업데이트
+    if (!user.stats) {
+      user.stats = { totalRoutines: 0, completedEvents: 0, totalStudyHours: 0, streak: 0 };
+    }
+    user.stats.totalRoutines = user.routines.length;
+    
     await user.save();
 
     res.json({ 
@@ -128,22 +146,6 @@ router.delete('/:routineId', requireLogin, async (req, res) => {
     console.error('Delete routine error:', error);
     res.status(500).json({ error: '루틴을 삭제하는 중 오류가 발생했습니다' });
   }
-});
-
-// 루틴 수정
-router.put('/:routineId', requireLogin, async (req, res) => {
-  const user = await User.findById(req.session.userId);
-  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
-
-  const idx = user.routines.findIndex(r => r.id === req.params.routineId);
-  if (idx === -1) return res.status(404).json({ error: '루틴을 찾을 수 없습니다' });
-
-  // 새로운 루틴 내용으로 교체 (필요한 필드만)
-  user.routines[idx] = { ...user.routines[idx], ...req.body };
-  user.routines[idx].updatedAt = new Date();
-  await user.save();
-
-  res.json({ success: true, message: '루틴이 수정되었습니다.' });
 });
 
 

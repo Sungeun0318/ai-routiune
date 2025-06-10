@@ -470,39 +470,3 @@ router.get('/user-stats', (req, res) => {
 });
 
 module.exports = router;
-
-// 루틴 저장 라우터 추가
-router.post('/routines/save', async (req, res) => {
-  try {
-    const { routineItems, fullRoutine, dailyRoutines, startDate, duration } = req.body;
-
-    const subjects = routineItems.map(item => item.subject);
-    const title = subjects.length > 1
-      ? `${subjects[0]} 외 ${subjects.length - 1}개`
-      : subjects[0] || 'AI 추천 루틴';
-    const user = await User.findById(req.session.userId);
-    if (user) {
-      // 루틴 카운트 증가
-      user.routineCount = (user.routineCount || 0) + 1;
-      await user.save();
-    }
-
-    const newRoutine = new Routine({
-      userId: req.session.userId,
-      title,
-      subjects,
-      fullRoutine,
-      dailyRoutines,
-      startDate,
-      duration
-    });
-
-    await newRoutine.save();
-    console.log('✅ 루틴 DB 저장 완료:', newRoutine._id);
-
-    res.status(201).json({ ok: true, id: newRoutine._id });
-  } catch (err) {
-    console.error('❌ 루틴 저장 오류:', err);
-    res.status(500).json({ ok: false });
-  }
-});
