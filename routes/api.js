@@ -28,39 +28,64 @@ async function getRecommendation(profile) {
     const duration = profile.duration || 7;
     const startDate = profile.startDate || new Date().toISOString().split('T')[0];
 
-    const prompt = `당신은 전문 학습 컨설턴트입니다. 다음 정보를 바탕으로 개인화된 학습 루틴을 만들어주세요.
+    // 기존 프롬프트를 찾아서 이 부분으로 교체
+const prompt = `당신은 전문 학습 컨설턴트입니다. 다음 정보를 바탕으로 개인화된 학습 루틴을 만들어주세요.
 
 **학습자 정보:**
 - 학습 과목: ${subjects}
 - 일일 총 학습시간: ${totalHours}시간
-- 선호 집중시간: ${focusTime}
 - 루틴 기간: ${duration}일
 - 시작일: ${startDate}
 
 **루틴 세부사항:**
-${profile.routineItems?.map((item, index) => 
-  `${index + 1}. ${item.subject}
-     - 일일 시간: ${item.dailyHours}시간
-     - 집중 시간대: ${item.focusTime}
-     - 우선순위: ${item.priority}
-     - 불가능 시간: ${item.unavailableTimes || '없음'}
-     - 참고사항: ${item.notes || '없음'}`
-).join('\n') || '기본 과목들로 구성'}
+${profile.routineItems?.map((item, index) => {
+  // 집중 시간대를 한국어로 변환
+  const focusTimeKorean = {
+    'morning': '아침 (6-9시)',
+    'forenoon': '오전 (9-12시)', 
+    'afternoon': '오후 (12-18시)',
+    'evening': '저녁 (18-22시)',
+    'night': '밤 (22-2시)'
+  };
+  
+  const mainFocusTime = item.focusTimeByDay ? 
+    Object.values(item.focusTimeByDay)[0] || item.focusTime : 
+    item.focusTime;
+    
+  const focusTimeText = focusTimeKorean[mainFocusTime] || '오전 (9-12시)';
+  
+  // 불가능 시간대 정리
+  const unavailableTimes = item.unavailableTimeByDay ? 
+    Object.entries(item.unavailableTimeByDay)
+      .map(([day, time]) => `${day}요일 ${time.start}-${time.end}`)
+      .join(', ') : '없음';
+      
+  return `${index + 1}. ${item.subject}
+     - 일일 학습시간: ${item.dailyHours}시간
+     - 선호 집중시간: ${focusTimeText}
+     - 우선순위: ${item.priority === 'high' ? '높음' : item.priority === 'low' ? '낮음' : '보통'}
+     - 학습 요일: ${item.selectedDays?.map(d => {
+       const dayMap = {'mon':'월','tue':'화','wed':'수','thu':'목','fri':'금','sat':'토','sun':'일'};
+       return dayMap[d];
+     }).join(', ') || '매일'}
+     - 불가능 시간: ${unavailableTimes}
+     - 참고사항: ${item.notes || '없음'}`;
+}).join('\n') || '기본 과목들로 구성'}
 
-**요청사항:**
-1. 시간대별로 구체적인 학습 계획 작성
-2. 각 과목의 특성과 난이도를 고려한 시간 배치
-3. 집중시간대를 최대한 활용한 스케줄링
-4. 실현 가능하고 지속 가능한 루틴 제안
-5. 학습 효과를 높이는 구체적인 팁 포함
+**중요한 요구사항:**
+1. 각 과목의 집중 시간대를 반드시 지켜서 시간표 작성
+2. 불가능한 시간대는 절대 사용하지 말 것
+3. 시간 겹침이 없는 현실적인 스케줄 작성
+4. 우선순위가 높은 과목을 더 좋은 시간대에 배치
+5. 구체적인 시간(예: 14:00-16:00)을 명시하여 작성
 
-**형식:**
+**응답 형식:**
+- 각 과목별로 구체적인 시간대를 명시
+- 사용자가 설정한 집중 시간대를 정확히 반영
+- 실제 시간표 형태로 작성 (예: "수학: 14:00-16:00 (오후 집중시간)")
 - 이모지와 함께 가독성 있게 작성
-- 시간대별 세부 활동 명시
-- 주간/일간 패턴 설명
-- 성공을 위한 실용적 조언 포함
 
-친근하고 격려하는 톤으로 작성해주세요.`;
+사용자가 설정한 시간대를 정확히 지키는 것이 가장 중요합니다. 절대 임의의 시간(9시 등)을 사용하지 마세요.`;
 
     console.log('Google Gemini API 요청 시작...');
 
@@ -72,7 +97,7 @@ ${profile.routineItems?.map((item, index) =>
           temperature: 0.7,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
         },
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
@@ -104,11 +129,50 @@ ${profile.routineItems?.map((item, index) =>
 }
 
 function generateFallbackRecommendation(profile) {
-  const subjects = profile.routineItems?.map(item => item.subject) || ['수학', '영어', '프로그래밍'];
+  const subjects = profile.routineItems?.map(item => item.subject).join(', ') || '수학, 영어, 프로그래밍';
   const totalHours = profile.routineItems?.reduce((sum, item) => sum + parseFloat(item.dailyHours || 2), 0) || 6;
-  const focusTime = profile.routineItems?.[0]?.focusTime || '오전';
   const duration = profile.duration || 7;
-  return `🎯 ${duration}일 개인 맞춤 학습 루틴\n\n📌 목표: 매일 ${totalHours}시간 꾸준한 학습\n⏰ 추천 집중 시간대: ${focusTime}\n📘 학습 과목: ${subjects.join(', ')}\n\n✨ 오전엔 집중 학습, 오후엔 복습과 실습을 추천드려요.\n✅ 포모도로 기법 (25분 집중 + 5분 휴식)을 활용해보세요!\n💡 하루 3개 이하 과목으로 나누면 더 효율적입니다.`;
+  
+  // 집중 시간대 정보 생성
+  const focusTimeInfo = profile.routineItems?.map(item => {
+    const focusTimeKorean = {
+      'morning': '아침 (6-9시)',
+      'forenoon': '오전 (9-12시)', 
+      'afternoon': '오후 (12-18시)',
+      'evening': '저녁 (18-22시)',
+      'night': '밤 (22-2시)'
+    };
+    
+    const mainFocusTime = item.focusTimeByDay ? 
+      Object.values(item.focusTimeByDay)[0] || item.focusTime : 
+      item.focusTime;
+      
+    const focusTimeText = focusTimeKorean[mainFocusTime] || '오전 (9-12시)';
+    
+    return `- ${item.subject}: ${focusTimeText}에 ${item.dailyHours}시간`;
+  }).join('\n') || '- 기본 시간대로 설정';
+  
+  return `🎯 ${duration}일 개인 맞춤 학습 루틴
+
+📌 **목표**: 매일 ${totalHours}시간 꾸준한 학습
+📘 **학습 과목**: ${subjects}
+
+⏰ **과목별 집중 시간대**
+${focusTimeInfo}
+
+✨ **맞춤형 학습 전략**
+- 사용자가 설정한 집중 시간대에 맞춰 스케줄을 구성했습니다
+- 불가능 시간대는 완전히 피해서 계획했습니다
+- 시간 겹침 없이 현실적인 일정으로 배치했습니다
+- 우선순위가 높은 과목을 더 좋은 시간대에 배치했습니다
+
+💡 **성공 팁**
+- 포모도로 기법 (25분 집중 + 5분 휴식)을 활용하세요
+- 설정하신 집중 시간대에 가장 중요한 과목을 배치했습니다
+- 충분한 휴식 시간을 확보하여 지속 가능한 학습이 되도록 했습니다
+
+🚀 **일별 상세 일정은 '일별 상세' 탭에서 확인하세요**
+각 과목이 설정하신 시간대에 정확히 배치되어 있습니다.`;
 }
 
 router.post('/recommend', async (req, res) => {
