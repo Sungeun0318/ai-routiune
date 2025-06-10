@@ -295,6 +295,9 @@ export function showApp(username, nickname) {
   // 사용자 이름 표시
   const displayName = nickname || username;
 
+
+
+  
 const usernameDisplay = document.getElementById('username-display');
 if (usernameDisplay) {
   usernameDisplay.textContent = displayName;

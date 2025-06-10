@@ -1198,3 +1198,186 @@ input:focus, select:focus, textarea:focus {
   background-color: #e0f0ff;
   border: 1px dashed #007bff;
 }
+/* ===== 다크모드 추가 스타일 ===== */
+
+/* 다크 테마 전용 스타일 */
+.dark-theme {
+  color-scheme: dark;
+}
+
+/* 다크 테마에서 입력 필드 스타일 */
+.dark-theme input[type="text"],
+.dark-theme input[type="email"],
+.dark-theme input[type="password"],
+.dark-theme input[type="number"],
+.dark-theme input[type="date"],
+.dark-theme input[type="time"],
+.dark-theme textarea,
+.dark-theme select {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.dark-theme input[type="text"]:focus,
+.dark-theme input[type="email"]:focus,
+.dark-theme input[type="password"]:focus,
+.dark-theme input[type="number"]:focus,
+.dark-theme input[type="date"]:focus,
+.dark-theme input[type="time"]:focus,
+.dark-theme textarea:focus,
+.dark-theme select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(92, 124, 250, 0.2);
+}
+
+/* 다크 테마에서 캘린더 스타일 */
+.dark-theme .fc-theme-standard td,
+.dark-theme .fc-theme-standard th {
+  border-color: var(--border);
+}
+
+.dark-theme .fc-theme-standard .fc-scrollgrid {
+  border-color: var(--border);
+}
+
+.dark-theme .fc .fc-daygrid-day.fc-day-today {
+  background-color: rgba(92, 124, 250, 0.15);
+}
+
+.dark-theme .fc-col-header-cell {
+  background-color: var(--surface);
+}
+
+.dark-theme .fc-daygrid-day-number,
+.dark-theme .fc-col-header-cell-cushion {
+  color: var(--text);
+}
+
+.dark-theme .fc-daygrid-day.fc-day-other .fc-daygrid-day-number {
+  color: var(--text-light);
+}
+
+/* 다크 테마에서 모달 스타일 */
+.dark-theme .modal {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark-theme .modal-content {
+  background-color: var(--card);
+  color: var(--text);
+}
+
+.dark-theme .modal-header {
+  border-bottom-color: var(--border);
+}
+
+.dark-theme .modal-footer {
+  border-top-color: var(--border);
+}
+
+/* 다크 테마에서 버튼 스타일 */
+.dark-theme .btn-secondary {
+  background-color: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.dark-theme .btn-secondary:hover {
+  background-color: var(--card);
+  border-color: var(--text-light);
+}
+
+/* 다크 테마에서 카드 스타일 */
+.dark-theme .card {
+  background-color: var(--card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 다크 테마에서 코드/프리포맷 텍스트 */
+.dark-theme .routine-text {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+/* 다크 테마에서 사이드바 */
+.dark-theme .sidebar {
+  background-color: var(--surface);
+  border-right-color: var(--border);
+}
+
+.dark-theme .nav-item:hover {
+  background-color: rgba(92, 124, 250, 0.1);
+}
+
+.dark-theme .nav-item.active {
+  background-color: rgba(92, 124, 250, 0.2);
+}
+
+/* 다크 테마에서 토스트 알림 */
+.dark-theme .toast {
+  background-color: var(--card);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 다크 테마에서 빈 상태 */
+.dark-theme .empty-state {
+  background-color: var(--surface);
+  border-color: var(--border);
+}
+
+/* 다크 테마에서 테이블 */
+.dark-theme table {
+  color: var(--text);
+}
+
+.dark-theme th {
+  background-color: var(--surface);
+  border-color: var(--border);
+}
+
+.dark-theme td {
+  border-color: var(--border);
+}
+
+/* 다크 테마에서 스크롤바 스타일 (웹킷 브라우저) */
+.dark-theme ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-light);
+}
+
+/* 테마 전환 애니메이션 */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* 로그인 페이지 다크모드 */
+.dark-theme .auth-container {
+  background-color: var(--card);
+}
+
+.dark-theme .auth-tabs {
+  background-color: var(--surface);
+}
+
+.dark-theme .auth-tab {
+  color: var(--text-light);
+}
+
+.dark-theme .auth-tab.active {
+  color: var(--primary);
+  background-color: var(--card);
+}

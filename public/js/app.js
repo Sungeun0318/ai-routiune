@@ -1,6 +1,7 @@
 // ✅ 외부 모듈 import
 import { checkAutoLogin, login, register, logout, getAuthToken, showApp } from './auth.js';
 import { setFetchUserDataFunction } from './auth.js';
+import { initThemeSettings } from './theme-switcher.js';
 import { 
   initNavigation, 
   showToast,
@@ -62,6 +63,7 @@ export function initApp() {
   initNavigation();
   initRoutineHandlers();
   initModalHandlers(); // ✅ 모달 핸들러 추가
+  initThemeSettings();
   setupEventListeners();
   setFetchUserDataFunction(fetchUserData);
   
@@ -270,11 +272,10 @@ export async function generateAIRoutine(profileData) {
     throw error;
   }
 }
-const calendarRouter = require('./routes/calendar');
-app.use('/api/calendar', calendarRouter); // <= 이게 반드시 있어야 함!!
 
 // ✅ 글로벌 함수 등록
 window.initCalendar = initCalendar;
 window.showToast = showToast;
 window.fetchUserData = fetchUserData;
 window.generateAIRoutine = generateAIRoutine;
+window.saveScheduleEdit = saveScheduleEdit; // ✅ 이 줄 추가하세요!

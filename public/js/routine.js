@@ -641,6 +641,8 @@ function setRoutineItemData(data) {
 }
 
 // 루틴 생성 (AI 호출 - 백엔드 연동)
+// 루틴 생성 (AI 호출 - 백엔드 연동)
+// 루틴 생성 (AI 호출 - 백엔드 연동)
 async function generateRoutine() {
   showToast('정보', 'AI가 루틴을 생성 중입니다...', 'info');
   hideModal('routine');
@@ -686,6 +688,9 @@ async function generateRoutine() {
       // ✅ 이 아래에 로그 추가
       console.log('🧾 dailyRoutines after init:', dailyRoutines);
       
+      // 임시 루틴 ID 생성 (서버에서 저장 전까지 사용)
+      window.currentRoutineId = `temp-routine-${Date.now()}`;
+      
       // 결과 표시
       document.getElementById('full-routine-content').textContent = generatedRoutine;
       updateDailyRoutineView();
@@ -721,6 +726,8 @@ function updateDailyRoutineView() {
   document.getElementById('prev-day').disabled = currentDayIndex === 0;
   document.getElementById('next-day').disabled = currentDayIndex === dailyRoutines.length - 1;
 }
+
+
 
 // 일정 편집 모달 표시
 function showEditScheduleModal() {
