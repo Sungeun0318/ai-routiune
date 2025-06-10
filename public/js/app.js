@@ -122,26 +122,6 @@ document.addEventListener('DOMContentLoaded', function initAppOnce() {
   deleteAccountBtn.removeEventListener('click', deleteAccount);
   deleteAccountBtn.addEventListener('click', deleteAccount);
   }
-
-  // ✅ 편집 저장 버튼 핸들러 (기존 리스너 완전히 제거 후 새로 등록)
-const saveEditBtn = document.getElementById('save-schedule-edit');
-if (saveEditBtn) {
-  // 기존 모든 이벤트 리스너 제거
-  const newSaveBtn = saveEditBtn.cloneNode(true);
-  saveEditBtn.parentNode.replaceChild(newSaveBtn, saveEditBtn);
-  
-  // 새로운 이벤트 리스너만 등록
-  newSaveBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (currentEvent) {
-      await saveEventEdit();
-    } else {
-      console.log('❌ currentEvent가 없습니다');
-    }
-  });
-}
 });
 // ✅ UI 이벤트 연결
 function setupEventListeners() {

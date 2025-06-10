@@ -852,7 +852,7 @@ if (!routineId) {
   updateDailyRoutineView();
   hideModal('editSchedule');
   showToast('성공', '일정이 수정되었습니다.', 'success'); // 이 줄 추가
-  fetchTodaySchedule();
+  
 } else {
   showToast('오류', result.message || '수정 실패', 'error');
 }
@@ -860,19 +860,6 @@ if (!routineId) {
     showToast('오류', '서버와의 통신 중 오류가 발생했습니다.', 'error');
   }
 }
-
-
-  // 리스트 내 input에서 받은 값으로 업데이트 후
-  updateDailyRoutineContent();
-  updateDailyRoutineView();
-
-  console.log('Updated view content:', document.getElementById('daily-routine-content').textContent);
-  hideModal('editSchedule');
-  
-  showToast('성공', '일정이 수정되었습니다.', 'success');
-
-  // 최신화
-
 
 
 
