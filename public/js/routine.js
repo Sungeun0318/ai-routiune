@@ -348,7 +348,10 @@ export function fetchRecentRoutines() {
 export async function fetchTodaySchedule() {
   try {
     const response = await fetch('/api/calendar/today', {
-      headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!response.ok) {

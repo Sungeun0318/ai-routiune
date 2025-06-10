@@ -12,62 +12,36 @@ export function setFetchUserDataFunction(fn) {
 }
 
 // 자동 로그인 확인
+// auth.js (프론트엔드)
+
 export function checkAutoLogin() {
   return new Promise((resolve) => {
-    console.log('🔍 자동 로그인 확인 중...');
-    
-    if (DEV_MODE) {
-      const token = localStorage.getItem('authToken');
-      const username = localStorage.getItem('username');
-      
-      if (!token || !username) {
-        console.log('❌ 저장된 인증 정보 없음');
-        resolve(false);
-        return;
-      }
-      
-      console.log('🔧 개발 모드: 로컬 정보로 자동 로그인');
-      showApp(username);
-      resolve(true);
-      return;
-    }
-    
-    // 프로덕션 모드: 세션 기반 인증 확인
-    console.log('🌐 서버에 세션 검증 요청...');
     fetch('/api/me', {
       method: 'GET',
       credentials: 'include',
-      headers: { 
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     })
-    .then(response => {
-      console.log('🔍 세션 검증 응답:', response.status);
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return response.json();
-      }
-      throw new Error('Invalid response format');
-    })
-    .then(data => {
-      console.log('✅ 세션 검증 결과:', data);
-      if (data.ok && data.user) {
-        const displayName = data.user.displayName || data.user.nickname || data.user.username;
-        showApp(displayName); //류찬형
-        resolve(true);
-      } else {
-        console.log('❌ 세션 무효, 로그아웃 처리');
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok && data.user) {
+          showApp({
+            username: data.user.username,
+            nickname: data.user.displayName || data.user.nickname || data.user.username
+          });
+          resolve(true);
+        } else {
+          logout(false);
+          resolve(false);
+        }
+      })
+      .catch(() => {
         logout(false);
         resolve(false);
-      }
-    })
-    .catch(error => {
-      console.error('❌ 세션 검증 오류:', error);
-      logout(false);
-      resolve(false);
-    });
+      });
   });
 }
+
+
 
 // 로그인
 export async function login() {

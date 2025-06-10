@@ -257,6 +257,9 @@ export function hideApp() {
     loginContainer.style.display = 'flex';
   }
   
+  const toastContainer = document.getElementById('toast-container');
+  if (toastContainer) toastContainer.innerHTML = '';
+  
   // 로그인 탭 활성화
   const loginTab = document.getElementById('login-tab');
   if (loginTab) {

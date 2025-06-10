@@ -6,7 +6,11 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
-// ✅ 루틴 생성 API
+router.get('/today', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ error: '로그인이 필요합니다' });
+  }
+})// ✅ 루틴 생성 API
 router.post('/generate', async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -56,6 +60,7 @@ router.post('/generate', async (req, res) => {
     });
   }
 });
+
 
 // ✅ 루틴 캘린더 저장 API
 router.post('/save', async (req, res) => {
@@ -456,4 +461,34 @@ router.get('/today', async (req, res) => {
   res.json({ schedule: todayEvents });
 });
 
+// --- [POST] /api/calendar/reset ---
+// 사용자 캘린더 일정 초기화(전체 삭제)
+router.post('/reset', async (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).json({ success: false, message: '로그인이 필요합니다' });
+  }
+
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다' });
+    }
+
+    // 캘린더 이벤트 초기화
+    user.calendarEvents = [];
+
+    // 루틴 목록 초기화 (필요하다면)
+    // user.routines = [];
+
+    await user.save();
+
+    res.json({ success: true, message: '캘린더 일정이 초기화되었습니다' });
+  } catch (error) {
+    console.error('❌ 캘린더 초기화 오류:', error);
+    res.status(500).json({ success: false, message: '캘린더 초기화 중 오류가 발생했습니다' });
+  }
+});
+
+
 module.exports = router;
+
