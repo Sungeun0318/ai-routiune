@@ -121,20 +121,28 @@ document.addEventListener('DOMContentLoaded', function initAppOnce() {
   // 기존 이벤트 리스너 제거 후 새로 등록
   deleteAccountBtn.removeEventListener('click', deleteAccount);
   deleteAccountBtn.addEventListener('click', deleteAccount);
-}
-
-  // ✅ 강제 저장 버튼 리스너 추가
-  const saveBtn = document.getElementById('save-schedule-edit');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      console.log('✅ 저장 버튼 클릭됨');
-      saveScheduleEdit();
-    });
-  } else {
-    console.error('❌ 저장 버튼을 찾을 수 없습니다.');
   }
-});
 
+  // ✅ 편집 저장 버튼 핸들러 (기존 리스너 완전히 제거 후 새로 등록)
+const saveEditBtn = document.getElementById('save-schedule-edit');
+if (saveEditBtn) {
+  // 기존 모든 이벤트 리스너 제거
+  const newSaveBtn = saveEditBtn.cloneNode(true);
+  saveEditBtn.parentNode.replaceChild(newSaveBtn, saveEditBtn);
+  
+  // 새로운 이벤트 리스너만 등록
+  newSaveBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (currentEvent) {
+      await saveEventEdit();
+    } else {
+      console.log('❌ currentEvent가 없습니다');
+    }
+  });
+}
+});
 // ✅ UI 이벤트 연결
 function setupEventListeners() {
   document.getElementById('login-form')?.addEventListener('submit', (e) => {

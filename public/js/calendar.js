@@ -268,17 +268,45 @@ function initEventHandlers() {
       }
     };
   }
+
+  // ✅ 편집 저장 버튼 핸들러 (기존 리스너 완전히 제거 후 새로 등록)
+const saveEditBtn = document.getElementById('save-schedule-edit');
+if (saveEditBtn) {
+  // 기존 모든 이벤트 리스너 제거
+  const newSaveBtn = saveEditBtn.cloneNode(true);
+  saveEditBtn.parentNode.replaceChild(newSaveBtn, saveEditBtn);
+  
+  // 새로운 이벤트 리스너만 등록
+  newSaveBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (currentEvent) {
+      await saveEventEdit();
+    } else {
+      console.log('❌ currentEvent가 없습니다');
+    }
+  });
+}
+
+  
   
   // 이벤트 편집 버튼
   const editBtn = document.getElementById('edit-event');
-  if (editBtn) {
+   if (editBtn) {
     editBtn.onclick = () => {
-      if (currentEvent) {
-        if (window.hideModal) window.hideModal('eventDetail');
-        /* if (window.showToast) window.showToast('준비 중', '일정 편집 기능은 준비 중입니다.', 'info'); */ //류찬형
-      }
-    };
-  }
+     if (currentEvent) {
+      // 상세 모달 닫기
+      if (window.hideModal) window.hideModal('eventDetail');
+      
+      // ✅ 편집 모달의 필드들을 현재 이벤트 데이터로 채우기
+      fillEditModal(currentEvent);
+      
+      // ✅ 편집 모달 표시
+      if (window.showModal) window.showModal('editSchedule');
+    }
+  };
+}
   
   // 이벤트 완료 버튼
   const completeBtn = document.getElementById('complete-event');
@@ -308,6 +336,83 @@ function initEventHandlers() {
   }
   
   console.log('✅ 이벤트 핸들러 초기화 완료');
+}
+
+// ✅ 편집 모달 필드 채우기 함수 (새로 추가)
+function fillEditModal(event) {
+  const titleInput = document.getElementById('edit-title');
+  const timeInput = document.getElementById('edit-time');
+  const memoInput = document.getElementById('edit-memo');
+  
+  if (titleInput) titleInput.value = event.title || '';
+  
+  if (timeInput) {
+    const start = event.start;
+    const end = event.end || new Date(start.getTime() + 60 * 60 * 1000);
+    
+    const timeFormatter = new Intl.DateTimeFormat('ko', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    const startTime = timeFormatter.format(start);
+    const endTime = timeFormatter.format(end);
+    timeInput.value = `${startTime} - ${endTime}`;
+  }
+  
+  if (memoInput) {
+    memoInput.value = event.extendedProps?.notes || '';
+  }
+}
+
+// ✅ 이벤트 편집 저장 함수 (새로 추가)
+async function saveEventEdit() {
+  const titleInput = document.getElementById('edit-title');
+  const timeInput = document.getElementById('edit-time');
+  const memoInput = document.getElementById('edit-memo');
+  
+  const newTitle = titleInput?.value || currentEvent.title;
+  const timeValue = timeInput?.value || '';
+  const newMemo = memoInput?.value || '';
+  
+  // 시간 파싱 (예: "10:00 - 12:00" 형식)
+  let newStart = currentEvent.start;
+  let newEnd = currentEvent.end;
+  
+  if (timeValue.includes(' - ')) {
+    const [startTimeStr, endTimeStr] = timeValue.split(' - ');
+    const eventDate = new Date(currentEvent.start);
+    
+    // 시작 시간 설정
+    const [startHour, startMinute] = startTimeStr.split(':').map(Number);
+    newStart = new Date(eventDate);
+    newStart.setHours(startHour, startMinute, 0, 0);
+    
+    // 종료 시간 설정
+    const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+    newEnd = new Date(eventDate);
+    newEnd.setHours(endHour, endMinute, 0, 0);
+  }
+  
+  try {
+    // ✅ 캘린더 이벤트 업데이트
+    currentEvent.setProp('title', newTitle);
+    currentEvent.setStart(newStart);
+    currentEvent.setEnd(newEnd);
+    currentEvent.setExtendedProp('notes', newMemo);
+    
+    // ✅ 서버에 업데이트 전송
+    await updateEventOnServer(currentEvent);
+    
+    // ✅ 모달 닫기 및 성공 메시지
+    if (window.hideModal) window.hideModal('editSchedule');
+    if (window.showToast) window.showToast('성공', '일정이 수정되었습니다!', 'success');
+    
+  } catch (error) {
+    console.error('❌ 이벤트 수정 오류:', error);
+    if (window.showToast) window.showToast('오류', '일정 수정 중 오류가 발생했습니다.', 'error');
+  }
 }
 
 // 새 이벤트 추가 함수

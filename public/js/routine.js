@@ -9,6 +9,8 @@ let generatedRoutine = null;
 let dailyRoutines = [];
 let currentDayIndex = 0;
 
+
+
 // 요일 한국어 매핑
 const dayNames = {
   'mon': '월요일',
@@ -121,9 +123,9 @@ export function initRoutineHandlers() {
   });
   
   // 일정 편집 저장 버튼
-  document.getElementById('save-schedule-edit').addEventListener('click', () => {
-    saveScheduleEdit();
-  });
+  //document.getElementById('save-schedule-edit').addEventListener('click', () => {
+  // saveScheduleEdit();
+  //});
   
   // 일정 편집 취소 버튼
   document.getElementById('cancel-schedule-edit').addEventListener('click', () => {

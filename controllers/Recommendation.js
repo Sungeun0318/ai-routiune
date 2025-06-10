@@ -1,45 +1,34 @@
+const axios = require('axios');  // 상단에 추가
+
 exports.generateRoutine = async (req, res) => {
   try {
-    const { subject = "수학", duration = 7 } = req.body;
+    const { subject, duration, target, memo, availableTime, recentRoutines } = req.body;
 
-    const startDate = new Date();
-    const dailyRoutines = [];
+    const prompt = `
+      [사용자 정보]
+      - 과목: ${subject}
+      - 기간: ${duration}일
+      - 목표: ${target}
+      - 메모: ${memo}
+      - 사용자가 자주 하는 시간대: ${availableTime}
+      - 최근 루틴: ${recentRoutines}
 
-    for (let i = 0; i < duration; i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      const formattedDate = currentDate.toISOString().split('T')[0];
-      const dateLabel = `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${currentDate.getDate()}일`;
+      위 정보를 참고해서 하루 단위 맞춤형 학습루틴(시간별 일정, 추천 이유 포함)을 표 형식으로 만들어줘.
+    `;
 
-      // ✅ 일정 한 개라도 반드시 들어가야 함
-      const schedules = [
-        {
-          startTime: "07:00",
-          endTime: "09:00",
-          title: `${subject} - 문제풀이`
-        }
-      ];
+    // 실제로는 여기에 Gemini API endpoint와 KEY를 사용해야 함
+    const geminiResponse = await axios.post(
+      "https://api.gemini.google.com/v1/generate", // 예시 URL (실제엔 공식 문서 참고)
+      { prompt },
+      { headers: { "Authorization": "Bearer [YOUR_GEMINI_API_KEY]" } }
+    );
 
-      const content = `${dateLabel} 학습 계획:\n\n` +
-        schedules.map(s => `${s.startTime}-${s.endTime}: ${s.title}`).join('\n');
+    const routine = geminiResponse.data.choices[0].text;
 
-      dailyRoutines.push({
-        date: formattedDate,
-        content,
-        schedules
-      });
-    }
-
-    const fullRoutine = `🧠 뇌과학 기반 최적화 학습 루틴\n\n- 학습 과목: ${subject}\n- 학습 기간: ${duration}일\n- 적용 이론: 인터리빙 학습법`;
-
-    res.status(200).json({
-      message: "루틴 생성 완료",
-      recommendation: fullRoutine,
-      dailyRoutines
-    });
+    res.status(200).json({ routine });
 
   } catch (err) {
-    console.error("루틴 생성 실패:", err);
-    res.status(500).json({ error: "루틴 생성 중 오류 발생" });
+    console.error("추천 생성 실패:", err);
+    res.status(500).json({ error: "추천 생성 실패" });
   }
 };
