@@ -310,5 +310,5 @@ if (profileUsername) {
 
 // 인증 토큰 가져오기 (세션 기반에서는 사용하지 않음)
 export function getAuthToken() {
-  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  return localStorage.getItem('token');
 }

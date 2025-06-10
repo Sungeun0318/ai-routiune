@@ -270,6 +270,8 @@ export async function generateAIRoutine(profileData) {
     throw error;
   }
 }
+const calendarRouter = require('./routes/calendar');
+app.use('/api/calendar', calendarRouter); // <= 이게 반드시 있어야 함!!
 
 // ✅ 글로벌 함수 등록
 window.initCalendar = initCalendar;

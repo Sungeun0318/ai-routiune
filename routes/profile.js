@@ -18,19 +18,20 @@ router.get('/', requireLogin, async (req, res) => {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
     }
 
+    // 가입일 형식
     const joinDate = new Intl.DateTimeFormat('ko', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    }).format(user.joinDate);
+    }).format(user.createdAt || user.joinDate);
 
     res.json({
       username: user.username,
       email: user.email || '',
-      displayName: user.displayName || user.username,
+      displayName: user.nickname || user.username,
       joinDate: joinDate,
-      routineCount: user.stats.routineCount,
-      completedCount: user.stats.completedCount
+      routineCount: user.stats?.totalRoutines || 0,
+      completedCount: user.stats?.completedEvents || 0
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -48,9 +49,9 @@ router.put('/', requireLogin, async (req, res) => {
 
     const { displayName, email, currentPassword, newPassword } = req.body;
 
-    // 기본 정보 업데이트
+    // 닉네임/이메일 변경
     if (displayName !== undefined) {
-      user.displayName = displayName.trim();
+      user.nickname = displayName.trim();
     }
     if (email !== undefined) {
       user.email = email.trim();
@@ -58,13 +59,10 @@ router.put('/', requireLogin, async (req, res) => {
 
     // 비밀번호 변경
     if (newPassword && currentPassword) {
-      // 현재 비밀번호 확인
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
       if (!isCurrentPasswordValid) {
         return res.status(400).json({ error: '현재 비밀번호가 일치하지 않습니다' });
       }
-
-      // 새 비밀번호 해시화
       user.passwordHash = await bcrypt.hash(newPassword, 10);
     }
 
@@ -76,7 +74,7 @@ router.put('/', requireLogin, async (req, res) => {
       user: {
         username: user.username,
         email: user.email || '',
-        displayName: user.displayName || user.username
+        displayName: user.nickname || user.username
       }
     });
   } catch (error) {
@@ -89,24 +87,16 @@ router.put('/', requireLogin, async (req, res) => {
 router.delete('/', requireLogin, async (req, res) => {
   try {
     const { password } = req.body;
-
     const user = await User.findById(req.session.userId);
     if (!user) {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
     }
-
-    // 비밀번호 확인
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
       return res.status(400).json({ error: '비밀번호가 일치하지 않습니다' });
     }
-
-    // 사용자 삭제
     await User.findByIdAndDelete(req.session.userId);
-
-    // 세션 삭제
     req.session.destroy();
-
     res.json({
       success: true,
       message: '계정이 성공적으로 삭제되었습니다'
@@ -124,13 +114,11 @@ router.get('/me', requireLogin, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
     }
-
-    res.json({ nickname: user.displayName || user.username });
+    res.json({ nickname: user.nickname || user.username });
   } catch (error) {
     console.error('닉네임 조회 오류:', error);
     res.status(500).json({ error: '닉네임 조회 중 오류가 발생했습니다' });
   }
 });
-
 
 module.exports = router;

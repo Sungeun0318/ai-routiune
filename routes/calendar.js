@@ -395,4 +395,65 @@ function generateStudyNotes(subject, studyType, dayIndex) {
   return noteList[dayIndex % noteList.length];
 }
 
+router.get('/events', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ success: false });
+  const user = await User.findById(req.session.userId);
+  res.json({ events: user.calendarEvents || [] });
+});
+// --- [POST] /api/calendar/events ---
+router.post('/events', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ success: false });
+  const user = await User.findById(req.session.userId);
+  const event = req.body;
+  event.id = event.id || `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  event.createdAt = new Date();
+  event.updatedAt = new Date();
+  user.calendarEvents.push(event);
+  await user.save();
+  res.json({ success: true, event });
+});
+// --- [PUT] /api/calendar/events/:eventId ---
+router.put('/events/:eventId', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ success: false });
+  const user = await User.findById(req.session.userId);
+  const idx = user.calendarEvents.findIndex(ev => ev.id === req.params.eventId);
+  if (idx === -1) return res.status(404).json({ success: false });
+  user.calendarEvents[idx] = { ...user.calendarEvents[idx], ...req.body, updatedAt: new Date() };
+  await user.save();
+  res.json({ success: true, event: user.calendarEvents[idx] });
+});
+// --- [DELETE] /api/calendar/events/:eventId ---
+router.delete('/events/:eventId', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ success: false });
+  const user = await User.findById(req.session.userId);
+  user.calendarEvents = user.calendarEvents.filter(ev => ev.id !== req.params.eventId);
+  await user.save();
+  res.json({ success: true });
+});
+// --- [PATCH] /api/calendar/events/:eventId/complete ---
+router.patch('/events/:eventId/complete', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ success: false });
+  const user = await User.findById(req.session.userId);
+  const idx = user.calendarEvents.findIndex(ev => ev.id === req.params.eventId);
+  if (idx === -1) return res.status(404).json({ success: false });
+  user.calendarEvents[idx].completed = !user.calendarEvents[idx].completed;
+  user.calendarEvents[idx].updatedAt = new Date();
+  await user.save();
+  res.json({ success: true, completed: user.calendarEvents[idx].completed });
+});
+
+// --- [GET] /api/calendar/today ---
+router.get('/today', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ success: false });
+  const user = await User.findById(req.session.userId);
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  const todayEvents = (user.calendarEvents || []).filter(event => {
+    const eventDate = new Date(event.start);
+    return eventDate >= todayStart && eventDate < todayEnd;
+  });
+  res.json({ schedule: todayEvents });
+});
+
 module.exports = router;

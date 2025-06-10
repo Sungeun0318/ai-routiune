@@ -130,7 +130,26 @@ router.delete('/:routineId', requireLogin, async (req, res) => {
   }
 });
 
+// 루틴 수정
+router.put('/:routineId', requireLogin, async (req, res) => {
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
+
+  const idx = user.routines.findIndex(r => r.id === req.params.routineId);
+  if (idx === -1) return res.status(404).json({ error: '루틴을 찾을 수 없습니다' });
+
+  // 새로운 루틴 내용으로 교체 (필요한 필드만)
+  user.routines[idx] = { ...user.routines[idx], ...req.body };
+  user.routines[idx].updatedAt = new Date();
+  await user.save();
+
+  res.json({ success: true, message: '루틴이 수정되었습니다.' });
+});
+
+
 // 일일 단위 루틴 미리보기 (AI 기반 생성)
 router.post('/generate', requireLogin, recommendationController.generateRoutine);
+
+
 
 module.exports = router;
